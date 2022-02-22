@@ -8,7 +8,7 @@ data/*
 
 
 # graps directory, this should be pulled from a separate repository
-graps/**
+graps
 
 # dev environment 
 .vscode
