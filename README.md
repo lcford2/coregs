@@ -1,6 +1,14 @@
 # COREGS
 
-## Compile GRAPS
+## Getting and Compiling GRAPS
+
+### Download GRAPS
+
+GRAPS can be downloaded from its [GitHub respository](https://github.com/lcford2/GRAPS/tree/coregs).
+You can either clone the code and checkout the COREGS release `git checkout tags/v1.0-coregs` or download the `v1.0-coregs` release directly.
+After you have downloaded GRAPS, move it to a directory named `graps` in the root directory of this project (i.e., the same location this README.md file is located).
+
+### Compiling GRAPS
 
 To compile GRAPS, you will need the intel oneAPI HPC toolkit, which is dependent on the oneAPI base toolkit. 
 You can find information on installing these toolkits at the [Intel oneAPI webpage](https://www.intel.com/content/www/us/en/developer/tools/oneapi/toolkits.html#gs.pvef6v). 
