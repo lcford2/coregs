@@ -1,0 +1,29 @@
+# coregs output and most input data
+generation_output/*
+graps_output/*
+graps_input/*
+!graps_input/default
+objective_output/*
+data/*
+
+# binary files for graps
+graps/lib/*
+graps/bin/*
+
+# dev environment 
+.vscode
+.venv
+*.code-workspace
+nohup.out
+
+# python module cache
+__pycache__
+
+# backup files
+**/*.bkp
+
+# trial scripts and output
+run_output
+*.sh
+*.log
+scens.dat
