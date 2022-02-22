@@ -1,11 +1,13 @@
 # coregs output and most input data
-generation_output/*
-graps_output/*
+*_output/*
 graps_input/*
-!graps_input/default
-objective_output/*
 data/*
 
+!*_output/README.md
+!graps_input/README.md
+!data/README.md
+
+!graps_input/default
 
 # graps directory, this should be pulled from a separate repository
 graps
