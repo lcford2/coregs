@@ -34,6 +34,9 @@ from graps_interface import GRAPS
 def parse_args(input_args=None):
     """Used to parse command line arguments
 
+    Args:
+        input_args (str) -- Can provide a string to parse instead of command line args. Helps when calling COREGS from other scripts.
+
     Returns:
         dict -- Dictionary containing key,value pairs for cmd line args
     """
@@ -109,8 +112,8 @@ def get_prefix(start_month, nmonths):
     quarterly run.
 
     Arguments:
-        start_month {str} -- Starting month as MM
-        nmonths {int} -- number of months of run
+        start_month (str) -- Starting month as MM
+        nmonths (int) -- number of months of run
 
     Returns:
         str -- Month initials for the scenario (e.g "JFM")
@@ -166,6 +169,11 @@ def convert_string_to_nums(string):
 
 
 def terminal_histogram(data_dict):
+    """Print a vertical histogram using the \u2588 character.
+
+    Args:
+        data_dict (dict): contains keys and numeric count values
+    """
     max_value = max(data_dict.values())
     max_length = max(map(len, data_dict.keys())) + 2
     unit = "\u2588"
@@ -175,10 +183,26 @@ def terminal_histogram(data_dict):
         print(f"{key:<{max_length}}: {hist}")
 
 def find_previous_day(year, month, day):
+    """Returns a datetime object that is one day before the day specified by the input
+
+    Args:
+        year (int): year of interest
+        month (int): month of interest
+        day (int): day of interest
+
+    Returns:
+        _type_: _description_
+    """
     return datetime(year, month, day) - timedelta(days=1)
 
 
 def modify_temoa_capacity(inputFile, scenario):
+    """Connects to the database specified by inputFile and updates the capacity of generators
+
+    Args:
+        inputFile (str): temoa database file
+        scenario (str): unique name for scenario
+    """    
     exist_cap_file = "data/existing_capacity.csv"
     df = pd.read_csv(exist_cap_file)
     con = sqlite3.connect(inputFile)
@@ -188,12 +212,6 @@ def modify_temoa_capacity(inputFile, scenario):
                SET exist_cap = ?
                WHERE tech = ?; 
             """
-    if scenario[:3] == "DJF":
-        key = "winter"
-    elif scenario[:3] == "JAS":
-        key = "summer"
-    else:
-        key = ["winter", "summer"]
     key = ["nameplate"]
     for i, row in df.iterrows():
         tech = row["tech"]
@@ -204,11 +222,10 @@ def modify_temoa_capacity(inputFile, scenario):
 
 
 def get_dsd(file="data/distribution.csv"):
-    # TODO : Fix all paths to be more generic [file]
     """Retrieves demand specific distribution for a full year
 
     Keyword Arguments:
-        file {str} -- File name/location of the dsd (default: {'data/distribution.csv'})
+        file (str) -- File name/location of the dsd (default: ('data/distribution.csv'))
 
     Returns:
         dict -- Contains dsd indexed by month, day, and hour.
@@ -230,6 +247,9 @@ def get_dsd(file="data/distribution.csv"):
                 line = line.strip("\r\n")
                 month, day, hour, demand, fraction = line.split(",")
                 data[month][day][hour] = float(fraction)
+    
+    # data = pd.read_csv(file, index_col=[0,1,2])
+    # data = data["Frac"]
     return data
 
 
@@ -255,24 +275,14 @@ def modify_temoa_dsd(prefix, db_file):
         time_of_day_name = ? AND demand_name = ?;
         """
 
-    # if we are not running for a whole year
-    if prefix != "year":
-        dates_conv = convert_string_to_nums(prefix)
-        for state in states:
-            for month in dates_conv:
-                day_dict = distrib[str(month)]
-                for day, hour_dict in day_dict.items():
-                    for hour, frac in hour_dict.items():
-                        month_conv = "20{:d}".format(int(month) + 10)
-                        cur.execute(query, (frac, int(month_conv), day, hour, state))
-    # if we are running for an entire year
-    else:
-        for state in states:
-            for month, day_dict in distrib.items():
-                for day, hour_dict in day_dict.items():
-                    for hour, frac in hour_dict.items():
-                        month_conv = "20{:d}".format(int(month) + 10)
-                        cur.execute(query, (frac, int(month_conv), day, hour, state))
+    dates_conv = convert_string_to_nums(prefix)
+    for state in states:
+        for month in dates_conv:
+            day_dict = distrib[str(month)]
+            for day, hour_dict in day_dict.items():
+                for hour, frac in hour_dict.items():
+                    month_conv = "20{:d}".format(int(month) + 10)
+                    cur.execute(query, (frac, int(month_conv), day, hour, state))
     con.commit()
     con.close()
 
@@ -442,7 +452,6 @@ def get_reservoir_rules(start, stop):
     Returns:
         tuple: two dictionaries containing lower and upper rule curves for reservoirs
     """
-    # TODO : Fix all paths to be more generic
     df = pd.read_pickle("./data/reservoir_rule_curves.pickle")
     names = list({f'{i.split("_")[0]} Reservoir' for i in df.columns})
     lower = {name: [] for name in names}
@@ -463,6 +472,13 @@ def get_reservoir_rules(start, stop):
 
 
 def update_reservoir_rules(start, stop, input_path):
+    """Loads reservoir storage rule curves and updates them for current scenario
+
+    Args:
+        start (int): starting month
+        stop (int): stopping month
+        input_path (str): location of input for GRAPS
+    """
     lower, upper = get_reservoir_rules(start, stop)
     curve_pattern = re.compile(r"^0.1 +0.1")
     name_pattern = re.compile(r"\w+ Reservoir\n")
@@ -476,6 +492,7 @@ def update_reservoir_rules(start, stop, input_path):
         curve_match = curve_pattern.search(line)
         if name_match:
             names.append(line.strip("\n"))
+
         if curve_match:
             if len(edit_lines) == 0:
                 edit_lines.append(i - 3)
@@ -501,11 +518,19 @@ def update_reservoir_rules(start, stop, input_path):
 
 
 def update_initial_reservoir_storage(start_year, start_month, input_path):
-    details_file = os.path.join(input_path, "reservoir_details.dat")
+    """Modify initial reservoir storage with storage at end of day before scenario starts
 
+    Args:
+        start_year (int): year the scenario starts in
+        start_month (int): starting month for the scenario
+        input_path (str): location of GRAPS input
+    """
+    # read reservoir details file
+    details_file = os.path.join(input_path, "reservoir_details.dat")
     with open(details_file, "r") as f:
         details = f.readlines()
 
+    # load and prep observed data
     observed_data = pd.read_csv(
         "./data/tva_reservoir_data.csv"
     )
@@ -513,9 +538,12 @@ def update_initial_reservoir_storage(start_year, start_month, input_path):
     observed_data = observed_data.set_index(["date", "reservoir"])
     obs_sto = observed_data["storage_1000_acft"].unstack()
 
+    # get init storages for all reservoirs
     previous_day = find_previous_day(start_year, start_month, 1)
     init_storage = obs_sto.loc[previous_day]
 
+    # use regex to find the line the details for each reservoir start on
+    # the init storage line is 3 lines below that
     res_pat = re.compile(r"\w+ Reservoir")
     for i, line in enumerate(details):
         if re.search(res_pat, line):
@@ -525,6 +553,7 @@ def update_initial_reservoir_storage(start_year, start_month, input_path):
             update_line = "  ".join(update_line) + "\n"
             details[i + 3] = update_line
 
+    # rewrite the reservoir details file
     with open(details_file, "w") as f:
         for line in details:
             f.write(line)
@@ -533,16 +562,34 @@ def update_initial_reservoir_storage(start_year, start_month, input_path):
 def update_initial_storage_for_rolling(
     scenario, input_path, start_month, nmonths
 ):
+    """Similar function to the update_initial_reservoir_storage but designed to carry over information from previous scenarios.
+    This works by using the ending storage from the first month of the previous scenario as the 
+    starting storage for this scenario.
+
+    Args:
+        scenario (str): unique scenario identifier
+        input_path (str): location of GRAPS input files
+        start_month (int): starting month of scenario
+        nmonths (int): number of months modeled
+
+    Raises:
+        FileNotFoundError: When there is no previous scenario to pull storages from this is raised.
+        This can happen when attempting to run with the --rolling flag and the --one_run flag for a 
+        scenario that has not had previous rolling runs completed.
+    """
+    # get the scenario of the previous run
     prev_scen = change_scenario_for_rolling_window(
         scenario, start_month, nmonths, backwards=True
     )
 
+    # locate output files for previous scenario
     prev_scen_path = os.path.join(
         os.path.split(os.path.split(os.path.dirname(input_path))[0])[0],
         "graps_output",
         prev_scen,
     )
 
+    # check to make sure we can update files with previous information
     if not os.path.isdir(prev_scen_path):
         if os.path.isdir(f"{prev_scen_path}_rolling"):
             prev_scen_path = f"{prev_scen_path}_rolling"
@@ -553,14 +600,20 @@ def update_initial_storage_for_rolling(
     storage_file = os.path.join(prev_scen_path, "storage.out")
     details_file = os.path.join(input_path, "reservoir_details.dat")
 
+    # read storage output from previous scenario
     with open(storage_file, "r") as f:
         storage = f.readlines()
+    # read reservoir details for current scenario
     with open(details_file, "r") as f:
         details = f.readlines()
 
+    # locate final storage values
     final_storage = storage[-28:]
+
+    # reservoir pattern to find proper line in details file
     res_pat = re.compile(r"\w+ Reservoir")
 
+    # setup dict for update values
     update_values = {}
     for line in final_storage:
         line = line.strip("\n\r")
@@ -569,6 +622,7 @@ def update_initial_storage_for_rolling(
         new_value = line[2]
         update_values[name] = new_value
 
+    # update the lines for with previous storage
     for i, line in enumerate(details):
         if re.search(res_pat, line):
             update_value = update_values[line.strip("\n\r")]
@@ -577,12 +631,21 @@ def update_initial_storage_for_rolling(
             update_line = "  ".join(update_line) + "\n"
             details[i + 3] = update_line
 
+    # rewrite reservoir details
     with open(details_file, "w") as f:
         for line in details:
             f.write(line)
 
 
 def update_reservoir_target_storage(input_path, stop, year):
+    """Similar function to those updating initial storage. Uses regex to change the target storage
+    for reservoirs in GRAPS`
+
+    Args:
+        input_path (str): location of graps input files
+        stop (int): stopping month
+        year (int): stopping year
+    """
     pattern = re.compile(r"(\d+\.\d+ +|\d+ +){5}(\d+\.\d+ *|\d+ *)")
     res_pat = re.compile(r"\w+ Reservoir")
 
@@ -629,12 +692,20 @@ def update_reservoir_target_storage(input_path, stop, year):
 
 
 def update_max_release(input_path):
+    """Use regex to parse and update the user_details.dat file with maximum release for each reservoir
+
+    Args:
+        input_path (str): location of GRAPS input files
+    """
     user_file = os.path.join(input_path, "user_details.dat")
-    # pattern = re.compile(r"^\D+ H")
+    
     pattern = re.compile(r"^\D+$|^\D+\d{1} H$")
+
     df = pd.read_pickle("./data/max_release.pickle")
+
     with open(user_file, "r") as f:
         user_data = f.readlines()
+
     for i, line in enumerate(user_data):
         if re.search(pattern, line):
             my_line = user_data[i + 4]
@@ -646,12 +717,18 @@ def update_max_release(input_path):
             my_line[-2] = new_value
             my_line = "\t".join(my_line) + "\n"
             user_data[i + 4] = my_line
+
     with open(user_file, "w") as f:
         for line in user_data:
             f.write(line)
 
 
 def update_graps_opt_params(input_path):
+    """Updates the optimization parameters for GRAPS. This changes how MHB and MHP execute.
+
+    Args:
+        input_path (str): location of GRAPS input files
+    """
     nf = "1"  # Number of objective functions
     mode = "210"  # CBA - reference FFSQP Manual for meaning
     iprint = "1"  # Controls level of output for FFSQP
@@ -671,6 +748,12 @@ def update_graps_opt_params(input_path):
 
 
 def update_graps_hydro_capacity(input_path, scenario):
+    """Ensure reservoir capacities in GRAPS are accurate
+
+    Args:
+        input_path (str): location of GRAPS input files
+        scenario (str): unique ID for scenario
+    """
     exist_cap_file = "data/existing_capacity.csv"
     df = pd.read_csv(exist_cap_file)
     if scenario[:3] == "DJF":
@@ -679,6 +762,7 @@ def update_graps_hydro_capacity(input_path, scenario):
         key = "summer"
     else:
         key = ["winter", "summer"]
+    #TODO: replace graps names with temoa names every where so I can avoid this stuff
     temoa_names = {
         "Apalachia H": "Apalachia_HY_TN",
         "BlueRidge H": "BlueRidge_HY_GA",
@@ -709,6 +793,7 @@ def update_graps_hydro_capacity(input_path, scenario):
         "Wilbur H": "Wilbur_HY_TN",
         "Wilson H": "Wilson_HY_AL",
     }
+    #TODO: this is a really bad way to do this. These are the line numbers that will be updated. 
     update_nums = {
         "Watuga H": 9,
         "Wilbur H": 22,
@@ -758,6 +843,15 @@ def update_graps_hydro_capacity(input_path, scenario):
 
 
 def update_reservoir_inflow_data(start_year, start_month, nmonths, input_path):
+    """Inflow is a defining characteristic of each scenario. This function ensures the correct inflow is 
+    given to graps for each reservoir and month modeled.
+
+    Args:
+        start_year (int): starting year for scenario
+        start_month (int): starting month for scenario
+        nmonths (int): number of months modeled in scenario
+        input_path (str): location of graps input files
+    """
     inflow_files = glob.glob(os.path.join(input_path, "InflowData/*"))
 
     observed_data = pd.read_csv(
@@ -787,26 +881,6 @@ def update_reservoir_inflow_data(start_year, start_month, nmonths, input_path):
             f.write("\t".join(map(str, values)))
     
 
-def rewrite_rcmt_inflow(input_path, ntime):
-    file_path = pathlib.Path(input_path) / "InflowData" / "RacoonMt_inflow.dat"
-
-    with open(file_path.as_posix(), "w") as f:
-        f.write("\t".join("0.0" for i in range(int(ntime))))
-
-
-def add_rcmt_inflow_to_decvars(input_path, start_year, start_month, nmonths):
-    df = pd.read_pickle("./data/rcmt_flow_info.pickle")
-    file_path = pathlib.Path(input_path) / "decisionvar_details.dat"
-    index = (
-        (df.index.year == int(start_year)) & (df.index.month == int(start_month))
-    ).tolist()
-    start_index = index.index(True)
-    stop_index = start_index + int(nmonths)
-    canal = df.loc[df.index[start_index:stop_index], "Canal"]
-    with open(file_path.as_posix(), "a") as f:
-        f.write("\n".join(f"{i:.3f}" for i in canal.values) + "\n")
-
-
 def update_graps_input_files(
     start_year,
     start_month,
@@ -816,15 +890,17 @@ def update_graps_input_files(
     rolling,
     first,
 ):  # sourcery no-metrics
-    """Uses shells scripts, R scripts, and directory manipulation 
-    to make reservoir input files with correct data for the modeled
-    time period
+    """Calls several functions that update the GRAPS input files
 
-    Arguments:
-        start_year {str} -- Starting year
-        start_month {str} -- Starting month
-
-    """
+    Args:
+        start_year (int): starting year of modeled scenario
+        start_month (int): starting month of modeled scenario
+        nmonths (int): number of months in modeled scenario
+        input_path (str): location of GRAPS input files
+        scenario (str): unique ID for modeled scenario
+        rolling (bool): rolling horizon analysis
+        first (bool): if this is the first run of a rolling horizon analysis
+    """        
     start_year = int(start_year)
     start_month = int(start_month)
     end_month = start_month + int(nmonths) - 1
@@ -833,35 +909,9 @@ def update_graps_input_files(
         end_month -= 12
         end_year += 1
 
-    # start_string = format_string.format(year=start_year, month=start_month, day=1)
-    # end_day = get_last_day(end_year, end_month)
-    # end_string = format_string.format(year=end_year, month=end_month, day=end_day)
-
-    # for file in glob.glob("graps_input/AMJ_04/*"):
-    #     if not os.path.isdir(file):
-    #         shutil.copy(file, input_path)
-
-    # curr_cwd = os.getcwd()
-    # os.chdir("ReservoirModel_preparation/")
-    # cmd_output_1 = subprocess.check_output(
-    #     ["Rscript", "./make_outputs.R", start_string, end_string]
-    # )
-    # cmd_output_2 = subprocess.check_output(
-    #     [
-    #         "./running.sh",
-    #         nmonths,
-    #         input_path[:-1],
-    #         monthf.format(start_month),
-    #         monthf.format(end_month),
-    #         "0",
-    #     ]
-    # )
-    # os.chdir(curr_cwd)
     update_reservoir_rules(start_month, end_month, input_path)
     update_initial_reservoir_storage(start_year, start_month, input_path)
     update_reservoir_inflow_data(start_year, start_month, nmonths, input_path)
-    # rewrite_rcmt_inflow(input_path, nmonths)
-    # add_rcmt_inflow_to_decvars(input_path, start_year, start_month, nmonths)
 
     update_graps_opt_params(input_path)
     if rolling and not first:
@@ -870,17 +920,17 @@ def update_graps_input_files(
         )
 
     update_max_release(input_path)
-    update_reservoir_target_storage(input_path, end_month, start_year)
+    update_reservoir_target_storage(input_path, end_month, end_year)
     update_graps_hydro_capacity(input_path, scenario)
 
 
 def get_data_from_database(filename, scenario, db_file):
-    """Used to parse data from database 'filename'
-    for scenario 'scenario'
+    """Parses data from database db_file and writes to filename
 
-    Arguments:
-        filename {str} -- File name/location for database
-        scenario {str} -- Scenario to get data for
+    Args:
+        filename (str): output file location 
+        scenario (str): unique ID for modeled scenario
+        db_file (str): location of temoa database
     """
     con = sqlite3.connect(db_file)
     cur = con.cursor()  # A database cursor enables traversal over DB records
@@ -892,6 +942,7 @@ def get_data_from_database(filename, scenario, db_file):
         if row[1] in ["p", "pb", "ps"] and row[0][:2] != "TD"
     }
 
+    #TODO: update this to use ? in the query instead of format.
     sql = (
         "SELECT t_periods, tech, scenario, sum(vflow_out) FROM Output_VFlow_Out WHERE tech IN {} and scenario = '"
         + scenario
@@ -900,18 +951,18 @@ def get_data_from_database(filename, scenario, db_file):
     sql = sql.format(tuple(generators))
 
     data = cur.execute(sql)
-    with open(filename + ".csv", "w") as f:
+    with open(f"{filename}.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerow(["Month", "Technology", "Scenario", "MWh"])
         writer.writerows(data)
     con.close()
 
 
-def clear_reservoir_files(scenario_name, output_dir):
-    """Clears reservoir files of data from the last run.
-    # TODO : This should be used to clear the output files
-    Arguments:
-        scenario_name {str} -- Scenario name used for directory where files are stored
+def clear_reservoir_files(output_dir):
+    """Used to ensure output files are clear before beginning an optimization routine
+
+    Args:
+        output_dir (str): location of output files to clear
     """
     cur_dir = os.getcwd()
     if not os.path.exists(output_dir):
@@ -929,8 +980,9 @@ def change_scenario_for_rolling_window(scenario, start_month, nmonths, backwards
     for rolling window analysis
 
     Arguments:
-        scenario {str} -- string containing modeled months and year
-        backwards {bool} (default = False) -- indicates if getting previous scenario
+        scenario (str) -- string containing modeled months and year
+        start_month (int) -- starting month of modeled scenario
+        backwards (bool) (default = False) -- indicates if getting previous scenario
 
     Returns:
         str -- string for scenario for next month
@@ -963,13 +1015,6 @@ def change_scenario_for_rolling_window(scenario, start_month, nmonths, backwards
         return "_".join([new_prefix, str(new_year), method])
 
 class COREGS(object):
-    """
-    This model will utilize an iterative algorithm to optimize 
-    a connected energy and reservoir system by increasing hydropower
-    production to reduce total cost of meeting electricity demand 
-    while maintaining reservoir constraints
-    """
-
     def __init__(
         self,
         args,
@@ -977,7 +1022,6 @@ class COREGS(object):
         persistent="N",
         start_year=None,
         start_month=None,
-        nmonths=None,
         param_num=None,
     ):
         """
@@ -1054,7 +1098,7 @@ class COREGS(object):
 
         modify_temoa_config(self.config_file, self.db_file, self.scen_name, solver)
         self.log_file = open(
-            os.path.join(self.output_path, self.scen_name + ".log"), "w"
+            os.path.join(self.output_path, f"{self.scen_name}.log"), "w"
         )
         update_graps_input_files(
             self.start_year,
@@ -1067,7 +1111,6 @@ class COREGS(object):
         )
         self.change_sholston_details()
         self.find_upstream_reservoirs()
-        # self.get_target_storage()
 
         self.end_month = self.start_month + int(self.nmonths)
         self.end_year = int(self.start_year)
@@ -1108,7 +1151,7 @@ class COREGS(object):
         start = timer()
         # clearing reservoir files
 
-        clear_reservoir_files(self.scen_name, self.output_path)
+        clear_reservoir_files(self.output_path)
         # instantiating models
         self.create_solver_instance_temoa()
         self.res_model = GRAPS(
@@ -1147,7 +1190,7 @@ class COREGS(object):
 
 
     def run_FFSQP(self):
-        clear_reservoir_files(self.scen_name, self.output_path)
+        clear_reservoir_files(self.output_path)
 
         self.create_solver_instance_temoa()
         self.res_model = GRAPS(
@@ -1168,7 +1211,7 @@ class COREGS(object):
         self.solve_temoa()
         self.write_objective_value(0)
         duals = self.get_activity_duals()
-        self.write_duals(duals, 1, self.output_path)
+        self.write_duals(duals, 1)
         self.get_hydro_benefits()
         self.res_model.optimize_model("run2")
 
@@ -1177,21 +1220,20 @@ class COREGS(object):
         self.solve_temoa()
         self.write_objective_value(1)
         duals = self.get_activity_duals()
-        self.write_duals(duals, 2, self.output_path)
+        self.write_duals(duals, 2)
         self.temoa_model.solutions.store_to(self.temoa_instance.result)
         formatted_results = pformat_results.pformat_results(
             self.temoa_model, self.temoa_instance.result, self.temoa_instance.options
         )
-        output_file = "./generation_output/" + self.scen_name
+        output_file = f'./generation_output/{self.scen_name}'
         get_data_from_database(output_file, self.scen_name, self.db_file)
 
-        self.create_mass_balance_output()
-        # self.moveTempDB()
+        self.create_mass_balance_output
 
     def find_in_out_paths(self):
         cur_dir = os.getcwd()
-        self.input_path = os.path.join(cur_dir, "graps_input", self.scen_name + "/")
-        self.output_path = os.path.join(cur_dir, "graps_output", self.scen_name + "/")
+        self.input_path = os.path.join(cur_dir, "graps_input", f'{self.scen_name}/')
+        self.output_path = os.path.join(cur_dir, "graps_output", f'{self.scen_name}/')
 
 
     def get_activity_duals(self):
@@ -1225,13 +1267,13 @@ class COREGS(object):
         for num_index, res_id, dual in duals_w_index.values():
             self.res_model.py_hydro_benefit[num_index] = abs(dual) / 1000
 
-    def write_duals(self, duals, iteration, output_path):
+    def write_duals(self, duals, iteration):
         with open(os.path.join(self.output_path, "duals.dat"), "a+") as f:
             for key, value in list(duals.items()):
                 f.write("{},{},{}\n".format(iteration, key, value))
 
     def change_decision_vars(self, iteration, alpha):
-        """Heart of the iterative process.
+        """Heart of ICORPS.
         Updates decision variables (releases) for reservoir model based on
         dual variable (shadow prices) in temoa for hydropower output and 
         physical and operational contraints in the reservoir model.
@@ -1245,7 +1287,7 @@ class COREGS(object):
             self.initial_duals = duals
 
         # write the dual variables
-        self.write_duals(duals, iteration, self.output_path)
+        self.write_duals(duals, iteration)
         # get reservoir model decision variables
         dec_vars = self.res_model.dec_vars
         # get hydro benefit
@@ -1278,7 +1320,6 @@ class COREGS(object):
         # sort the dual variables in ascending order
         sorted_duals = sorted(list(duals_w_index.items()), key=lambda x: x[1][2])
         max_dual = abs(sorted_duals[0][1][2])
-        max_dual2 = abs(sorted_duals[1][1][2])
 
         # Main decision loop,
         # fix spill and deficit
@@ -1287,8 +1328,7 @@ class COREGS(object):
             dec_vars, decreased_num_indices_iter = self.fix_spill_and_deficit(
                 num_index, res_id, spill, deficit, ntime, dec_vars
             )
-            for j in decreased_num_indices_iter:
-                decreased_num_indices.append(j)
+            decreased_num_indices.extend(iter(decreased_num_indices_iter))
 
         for index, (num_index, res_id, dual) in sorted_duals:
             if num_index in decreased_num_indices:
@@ -1296,8 +1336,6 @@ class COREGS(object):
                 continue
 
             dec_var = dec_vars[num_index]
-            storage_difference = self.res_model.res_violations[res_id]
-
             increase_ratio = abs(dual) / (max_dual * alpha)
 
             # do not want to check floats for == 0
@@ -1687,35 +1725,6 @@ class COREGS(object):
                 self.write(e + "\n")
                 sys.exit("KeyError in change_activity()")
         self.temoa_model.MaxActivityConstraint.reconstruct()
-
-    def get_target_storage(self):
-        """
-        Uses regex to get the target storage from reservoir files for the input period
-        """
-        year = self.year
-        file = os.path.join(self.input_path, "reservoir_details.dat")
-        with open(file, "r") as f:
-            data = f.read()
-
-        name_pattern = re.compile(r"\w+ Reservoir")
-        target_pattern = re.compile(
-            r"\d+\.?\d+ +\d\d +0\.\d +0\.\d +(\d+\.?\d+) +0\.\d"
-        )
-        name_matches = re.finditer(name_pattern, data)
-        target_matches = re.finditer(target_pattern, data)
-        if not os.path.isdir("./TargetStorage"):
-            os.mkdir("./TargetStorage")
-        with open(
-            os.path.join("./TargetStorage", "target_storage_{}.csv".format(year)), "w+"
-        ) as f:
-            writer = csv.writer(f)
-            writer.writerow(["Name", "Target"])
-            for name, target in zip(name_matches, target_matches):
-                res = name.group(0)
-                targ = target.group(1)
-                res = res.split()
-                res = "_".join(res)
-                writer.writerow([res, targ])
 
     def create_mass_balance_output(self):
         file = os.path.join(self.output_path, "mass_balance_vars.out")
