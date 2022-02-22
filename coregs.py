@@ -1143,26 +1143,14 @@ class COREGS(object):
         with open(os.path.join(self.input_path, details_file), "w") as f:
             f.writelines(details)
 
-    def initialize(self):
-        """
-        initialize and run reservoir model to provide base line hydropower values for 
-        temoa. Instantiate temoa with value provided from reservoir model.
-        """
-        start = timer()
-        # clearing reservoir files
-
-        clear_reservoir_files(self.output_path)
-        # instantiating models
+    def instantiate_models(self):
         self.create_solver_instance_temoa()
-        self.res_model = GRAPS(
+        self.res_mdoel = GRAPS(
             self.n_params, config.graps_loc, self.input_path, self.output_path, self.method
         )
         self.res_model.initialize_model()
 
-        # initial reservoir model run
-        self.res_model.simulate_model("run1")
-        # getting new maxactivity for temoa
-        self.res_model.create_new_max_act(int(self.nmonths))
+    def setup_temoa_for_solve(self):
         # populate temoa_model with data
         self.temoa_model = self.create_instance_temoa()
 
@@ -1175,6 +1163,29 @@ class COREGS(object):
 
         # update temoa activity with new activity for hydropower
         self.change_activity()
+
+    def setup_models(self):
+        clear_reservoir_files(self.output_path)
+
+        self.instantiate_models()
+
+        # initial reservoir model runV
+        self.res_model.simulate_model("run1")
+        # getting new maxactivity for temoa
+        self.res_model.create_new_max_act(int(self.nmonths))
+
+        self.setup_temoa_for_solve()
+
+
+    def initialize(self):
+        """
+        initialize and run reservoir model to provide base line hydropower values for 
+        temoa. Instantiate temoa with value provided from reservoir model.
+        """
+        start = timer()
+
+        self.setup_models()
+
         stop = timer()
         self.write("\n\tSetup time: {:0.3f} seconds\n".format(stop - start))
 
@@ -1190,37 +1201,27 @@ class COREGS(object):
 
 
     def run_FFSQP(self):
-        clear_reservoir_files(self.output_path)
+        self.setup_models() 
 
-        self.create_solver_instance_temoa()
-        self.res_model = GRAPS(
-            self.n_params, config.graps_loc, self.input_path, self.output_path, self.method
-        )
-
-        self.res_model.initialize_model()
-        self.res_model.simulate_model("run1")
         self.create_mass_balance_output()
-        self.res_model.create_new_max_act(int(self.nmonths))
-        self.temoa_model = self.create_instance_temoa()
 
-        self.temoa_model.dual = Suffix(direction=Suffix.IMPORT_EXPORT)
-        self.temoa_model.rc = Suffix(direction=Suffix.IMPORT)
-        self.objective = getattr(self.temoa_model, "TotalCost")
-
-        self.change_activity()
         self.solve_temoa()
+
         self.write_objective_value(0)
         duals = self.get_activity_duals()
         self.write_duals(duals, 1)
+
         self.get_hydro_benefits()
         self.res_model.optimize_model("run2")
 
         self.res_model.create_new_max_act(int(self.nmonths))
         self.change_activity()
         self.solve_temoa()
+
         self.write_objective_value(1)
         duals = self.get_activity_duals()
         self.write_duals(duals, 2)
+
         self.temoa_model.solutions.store_to(self.temoa_instance.result)
         formatted_results = pformat_results.pformat_results(
             self.temoa_model, self.temoa_instance.result, self.temoa_instance.options
@@ -1228,7 +1229,7 @@ class COREGS(object):
         output_file = f'./generation_output/{self.scen_name}'
         get_data_from_database(output_file, self.scen_name, self.db_file)
 
-        self.create_mass_balance_output
+        self.create_mass_balance_output()
 
     def find_in_out_paths(self):
         cur_dir = os.getcwd()
