@@ -16,13 +16,13 @@ class GRAPS(object):
     """
 
     def __init__(
-        self, n_init_params, input_path="./", output_path="./", func_flag="mhb"
+        self, n_init_params, graps_loc, input_path="./", output_path="./", func_flag="mhb"
     ):
         self.n_init_params = n_init_params
         self.in_path = input_path
         self.out_path = output_path
         self._update_path_file()
-        self.library = ct.CDLL("graps/lib/graps.so")
+        self.library = ct.CDLL(f"{graps_loc}/lib/graps.so")
         self.py_init_params = [0.0 for i in range(n_init_params)]
         self.ArrayType1 = ct.c_double * n_init_params
         self.initial_params = (self.ArrayType1)(*self.py_init_params)

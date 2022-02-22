@@ -21,15 +21,15 @@ from IPython import embed as II
 
 colorama.init(autoreset=True)
 
+from graps_interface import GRAPS
+import coregs_config as config
+
 # insert temoa at the front of our path so we can import it
-sys.path.insert(0, "../temoa/temoa_model")
+sys.path.insert(0, f"{config.temoa_loc}/temoa_model")
 
 import pformat_results
 import temoa_model as temoa
 import temoa_run
-
-from graps_interface import GRAPS
-
 
 def parse_args(input_args=None):
     """Used to parse command line arguments
@@ -1155,7 +1155,7 @@ class COREGS(object):
         # instantiating models
         self.create_solver_instance_temoa()
         self.res_model = GRAPS(
-            self.n_params, self.input_path, self.output_path, self.method
+            self.n_params, config.graps_loc, self.input_path, self.output_path, self.method
         )
         self.res_model.initialize_model()
 
@@ -1194,7 +1194,7 @@ class COREGS(object):
 
         self.create_solver_instance_temoa()
         self.res_model = GRAPS(
-            self.n_params, self.input_path, self.output_path, self.method
+            self.n_params, config.graps_loc, self.input_path, self.output_path, self.method
         )
 
         self.res_model.initialize_model()
