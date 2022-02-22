@@ -6,9 +6,9 @@ graps_input/*
 objective_output/*
 data/*
 
-# binary files for graps
-graps/lib/*
-graps/bin/*
+
+# graps directory, this should be pulled from a separate repository
+graps/**
 
 # dev environment 
 .vscode
