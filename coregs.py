@@ -212,7 +212,7 @@ def modify_temoa_capacity(inputFile, scenario):
                SET exist_cap = ?
                WHERE tech = ?; 
             """
-    key = ["nameplate"]
+    key = "nameplate"
     for i, row in df.iterrows():
         tech = row["tech"]
         cap = row[key].mean() if type(key) == list else row[key]
@@ -414,15 +414,7 @@ def modify_temoa_config(file, db_file, scenario, solver="gurobi"):
         f.write(data)
 
 
-def update_initial_temoa_data(
-    db_file,
-    start_year,
-    start_month,
-    method,
-    nmonths,
-    months,
-    rolling,
-):
+def get_new_scenario_name(start_year, start_month, nmonths, method, rolling):
     file_prefix = get_prefix(start_month, int(nmonths))
 
     # update scenario names for identification of output
@@ -430,16 +422,25 @@ def update_initial_temoa_data(
 
     if rolling:
         new_scenario_name += "_rolling"
+    return new_scenario_name
 
+
+def update_initial_temoa_data(
+    new_scenario_name,
+    db_file,
+    start_year,
+    start_month,
+    nmonths,
+    months,
+):
 
     stop_month = start_month + int(nmonths) - 1
     
     new_demand = get_elec_demand(start_month, stop_month, months, start_year)
 
     modify_temoa_demand(db_file, new_demand, nmonths)
-    modify_temoa_dsd(file_prefix, db_file)
+    modify_temoa_dsd(new_scenario_name[:3], db_file)
     modify_temoa_capacity(db_file, new_scenario_name)
-    return new_scenario_name
 
 
 def get_reservoir_rules(start, stop):
