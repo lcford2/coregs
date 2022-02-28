@@ -29,3 +29,6 @@ run_output
 *.sh
 *.log
 scens.dat
+
+# files for mpi execution of model
+mpi_files
