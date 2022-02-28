@@ -23,10 +23,10 @@ class GRAPS(object):
         self.out_path = output_path
         self._update_path_file()
         self.library = ct.CDLL(f"{graps_loc}/lib/graps.so")
-        self.py_init_params = [0.0 for i in range(n_init_params)]
+        self.py_init_params = [0.0 for _ in range(n_init_params)]
         self.ArrayType1 = ct.c_double * n_init_params
         self.initial_params = (self.ArrayType1)(*self.py_init_params)
-        self.py_hydro_benefit = [1.0 for i in range(int(n_init_params))]
+        self.py_hydro_benefit = [1.0 for _ in range(int(n_init_params))]
         self.init_index_cons_ct = ct.c_int(1)
         self.n_init_params_ct = ct.c_int(self.n_init_params)
         self.nres_ct = ct.c_int(0)
@@ -139,7 +139,7 @@ class GRAPS(object):
             "SHolston H": "SouthHolston_HY_TN",
             "TimsFord H": "TimsFord_HY_TN",
             "WattsBar H": "WattsBar_HY_TN",
-            "Watuga H": "Watauga_HY_TN",
+            "Watauga H": "Watauga_HY_TN",
             "Wheeler H": "Wheeler_HY_AL",
             "Wilbur H": "Wilbur_HY_TN",
             "Wilson H": "Wilson_HY_AL",

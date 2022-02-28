@@ -712,8 +712,6 @@ def update_max_release(input_path):
             my_line = user_data[i + 4]
             my_line = my_line.split()
             name = line.strip("\n\r")
-            if name == "Watuga H":
-                name = "Watauga H"
             new_value = str(df[name])
             my_line[-2] = new_value
             my_line = "\t".join(my_line) + "\n"
@@ -789,14 +787,14 @@ def update_graps_hydro_capacity(input_path, scenario):
         "SHolston H": "SouthHolston_HY_TN",
         "TimsFord H": "TimsFord_HY_TN",
         "WattsBar H": "WattsBar_HY_TN",
-        "Watuga H": "Watauga_HY_TN",
+        "Watauga H": "Watauga_HY_TN",
         "Wheeler H": "Wheeler_HY_AL",
         "Wilbur H": "Wilbur_HY_TN",
         "Wilson H": "Wilson_HY_AL",
     }
     #TODO: this is a really bad way to do this. These are the line numbers that will be updated. 
     update_nums = {
-        "Watuga H": 9,
+        "Watauga H": 9,
         "Wilbur H": 22,
         "SHolston H": 35,
         "Boone H": 48,
@@ -1081,14 +1079,13 @@ class COREGS(object):
         self.db_file = "data/tva_temoa.sqlite"
         self.set_all_capacities()
 
-        self.scen_name = update_initial_temoa_data(
+        update_initial_temoa_data(
+            self.scen_name,
             self.db_file,
             self.start_year,
             self.start_month,
-            self.method,
             self.nmonths,
             self.months,
-            self.rolling,
         )
 
         self.find_in_out_paths()
@@ -1146,7 +1143,7 @@ class COREGS(object):
 
     def instantiate_models(self):
         self.create_solver_instance_temoa()
-        self.res_mdoel = GRAPS(
+        self.res_model = GRAPS(
             self.n_params, config.graps_loc, self.input_path, self.output_path, self.method
         )
         self.res_model.initialize_model()
