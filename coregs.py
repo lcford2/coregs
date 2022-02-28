@@ -878,7 +878,7 @@ def update_reservoir_inflow_data(start_year, start_month, nmonths, input_path):
         values = inflow.loc[res].values
         with open(file, "w") as f:
             f.write("\t".join(map(str, values)))
-    
+
 
 def set_initial_release_to_observed(input_path, start_month, start_year, nmonths):
     # load and prep observed data
@@ -958,6 +958,7 @@ def update_graps_input_files(
     update_reservoir_rules(start_month, end_month, input_path)
     update_initial_reservoir_storage(start_year, start_month, input_path)
     update_reservoir_inflow_data(start_year, start_month, nmonths, input_path)
+    set_initial_release_to_observed(input_path, start_month, start_year, nmonths)
 
     update_graps_opt_params(input_path)
     if rolling and not first:
@@ -1123,7 +1124,35 @@ class COREGS(object):
         elif persistent == "Y":
             solver = "gurobi_persistent"
 
-        self.db_file = "data/tva_temoa.sqlite"
+        self.scen_name = get_new_scenario_name(
+            self.start_year,
+            self.start_month,
+            self.nmonths,
+            self.method,
+            self.rolling
+        )
+
+        tmp_db_file = "data/tva_temoa.sqlite"
+        # sqlite and NFS dont play well. 
+        # so when running in an environment with an NFS file system,
+        # it is best to make a local copy of the database for the model run
+        # and then copy it back to the main storage system afterwards.
+        # It is best to tag it with the user name in case others are doing this too.
+        # user_name = os.getlogin()
+        # if not os.path.isdir(f"/tmp/{user_name}_tempdb"):
+        #     os.mkdir(f"/tmp/{user_name}_tempdb")
+
+        # when using a temp file for the nfs issues, use the line directly below this one
+        # other wise, use the `self.db_file = temp_db_file`  line
+        # self.db_file = f"/tmp/{user_name}_tempdb/{self.scen_name}.sqlite"
+        self.db_file = tmp_db_file
+
+        # is using a tmp db, this command copies the current database to the temp location
+        # shutil.copy(
+        #     tmp_db_file,
+        #     self.db_file
+        # )
+
         self.set_all_capacities()
 
         update_initial_temoa_data(
@@ -1169,6 +1198,19 @@ class COREGS(object):
         with open(os.path.join(self.output_path, "duals.dat"), "w+") as f:
             pass
         self.clear_objective_file()
+
+    def clean_tmp_db(self):
+        try:
+            if not os.path.isdir("./db_output"):
+                os.mkdir("./db_output")
+            shutil.move(
+                self.db_file, 
+                f"db_output/{self.db_file.split('/')[-1]}"
+            )   
+        except FileNotFoundError:
+            # in this case, the user is not running with a temp file so 
+            # this command should not do anything
+            pass
 
     def write(self, string):
         self.log_file.write(string)
@@ -1275,6 +1317,7 @@ class COREGS(object):
         get_data_from_database(output_file, self.scen_name, self.db_file)
 
         self.create_mass_balance_output()
+        self.clean_tmp_db()
 
     def find_in_out_paths(self):
         cur_dir = os.getcwd()
@@ -1700,6 +1743,8 @@ class COREGS(object):
         self.log_file.close()
 
         self.create_mass_balance_output()
+        
+        self.clean_tmp_db()
         if self.stdout:
             self.SO.close()
         return iteration
@@ -1849,31 +1894,36 @@ def convert_seconds_to_minutes(seconds):
     return divmod(seconds, 60)
 
 
-def print_scenario_start(model):
+def print_scenario_start(model, SO=None):
+    if not SO:
+        SO = sys.stdout
     print(
         "\n\t"
         + Fore.GREEN
         + Style.BRIGHT
         + "Solving scenario {}\n".format(model.scen_name)
-        + Style.RESET_ALL
+        + Style.RESET_ALL,
+        file=SO
     )
 
-def print_model_time_stats(time, iterations):
+def print_model_time_stats(time, iterations, SO=None):
     avg_time = time / iterations
     minutes, seconds = convert_seconds_to_minutes(time)
 
-    print("\n\tTime Statistics:")
-    print(f"\t   Total time: {minutes:0.0f} minutes and {seconds:0.2f} seconds")
-    print(f"\t   Number of Iterations: {int(iterations):12d}")
-    print(f"\t   Average time per iteration: {avg_time:10.3f} seconds\n")
+    if not SO:
+        SO = sys.stdout
+    print("\n\tTime Statistics:", file=SO)
+    print(f"\t   Total time: {minutes:0.0f} minutes and {seconds:0.2f} seconds", file=SO)
+    print(f"\t   Number of Iterations: {int(iterations):12d}", file=SO)
+    print(f"\t   Average time per iteration: {avg_time:10.3f} seconds\n", file=SO)
 
 
-def run_single(args):
+def run_single(args, SO=None):
     method = args.get("method", "icorps")
     epsilon = float(args.get("epsilon", 0.005))
 
-    m = COREGS(args)
-    print_scenario_start(m)
+    m = COREGS(args, SO=SO)
+    print_scenario_start(m, SO)
     
     time1 = timer()
     if method in ["mhb", "mhp"]:
@@ -1888,35 +1938,26 @@ def run_single(args):
         iterations = 1
     time2 = timer()
     
-    print_model_time_stats(time2 - time1, iterations)
+    print_model_time_stats(time2 - time1, iterations, SO)
 
     return m
 
 
-def run_rolling(args):
-    method = args.get("method", "icorps")
-    epsilon = float(args.get("epsilon", 0.005))
+def run_rolling(args, SO=None):
     one_run = args.get("one_run")
 
-    if one_run:
-        windows = 1 
-    else:
-        windows = 12
+    windows = 1 if one_run else 12
 
     for window in range(windows):
-        if one_run:
-            args["first"] = False
-        else:
-            args["first"] = window == 0
-
+        args["first"] = False if one_run else window == 0
         if window > 0:
             args["start_month"] = "{:02d}".format(int(args["start_month"]) + 1)
 
         if args["start_month"] == "13":
             args["start_month"] = "01"
             args["start_year"] = str(int(args["start_year"]) + 1)
-    
-        m = run_single(args) 
+
+        m = run_single(args, SO) 
 
         del m
 
