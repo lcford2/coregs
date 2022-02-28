@@ -880,6 +880,53 @@ def update_reservoir_inflow_data(start_year, start_month, nmonths, input_path):
             f.write("\t".join(map(str, values)))
     
 
+def set_initial_release_to_observed(input_path, start_month, start_year, nmonths):
+    # load and prep observed data
+    observed_data = pd.read_csv(
+        "./data/tva_reservoir_data.csv"
+    )
+    observed_data["date"] = pd.to_datetime(observed_data["date"])
+    observed_data = observed_data.set_index(["date", "reservoir"])
+    release = observed_data["turbine_release_cfs"].unstack()
+
+    initial_date = datetime(start_year, start_month, 1)
+    stop_year = start_year
+    stop_month = int(start_month) + int(nmonths)
+    if stop_month > 12:
+        stop_month -= 12
+        stop_year += 1
+    end_date = datetime(stop_year, stop_month, 1)
+
+    release = release.loc[pd.date_range(initial_date, end_date, closed="left")]
+    release *= 3600 * 24 / 43560 / 1000 # cfs to 1000 acre-ft / day
+    release = release.resample("MS").sum().T
+
+    # get order of decvar file
+    user_file = pathlib.Path(input_path) / "user_details.dat"
+    res_pat = re.compile(r"\w+ H|.* Pump Station")
+
+    with open(user_file.as_posix(), "r") as f:
+        user_dets = f.read()
+    order = re.findall(res_pat, user_dets)
+    select_order = []
+    for i in order:
+        if i[-1] == "H":
+            select_order.append(i.split()[0])
+        else:
+            # for racoon mt pump station
+            select_order.append("RacoonMt")
+    
+    decvar_file = pathlib.Path(input_path) / "decisionvar_details.dat"
+    
+    output = []
+    for res in select_order:
+        output.extend(release.loc[res,:].values.tolist())
+    
+    with open(decvar_file.as_posix(), "w") as f:
+        f.writelines(
+            [f"{i}\n" for i in output]
+        )
+
 def update_graps_input_files(
     start_year,
     start_month,
