@@ -1,5 +1,7 @@
 # COREGS
 
+[![DOI](https://zenodo.org/badge/455716754.svg)](https://zenodo.org/badge/latestdoi/455716754)
+
 ## COREGS Setup
 
 To run COREGS, you must have the proper versions of GRAPS and Temoa installed and in locations where COREGS can find them.
