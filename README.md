@@ -71,8 +71,10 @@ Regardless of which method you choose to setup the virtual environment, it must 
 
 ### Data Retrieval
 
-The original data associated with this model can be found on Zenodo **MAKE THIS A LINK**.
-Before running COREGS, this data should be downloaded and all files should be placed under the `data` directory in the project root.
+The original data associated with this model can be found on Zenodo at [https://doi.org/10.5281/zenodo.6315940].
+Before running COREGS, the `coregs-input-data.zip` should be unpacked an extracted to all files should be placed under the `data` directory in the project root.
+If unzipping creates a folder in the `data` directory called `coregs-input-data`, all of the files in that folder should be moved so they reside directly in the
+`data` directory.
 
 ### GRAPS
 
