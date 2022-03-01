@@ -3,7 +3,7 @@
 ## COREGS Setup
 
 To run COREGS, you must have the proper versions of GRAPS and Temoa installed and in locations where COREGS can find them.
-The easiest way to get these models is to use the `get_graps_temoa.py` script (run with `python get_graps_temoa.py`) that will 
+The easiest way to get these models is to use the `coregs_init_setup.py` script (run with `python coregs_init_setup.py`) that will 
 download and put the models in locations COREGS expects them.
 These expected location of GRAPS and Temoa can be found in the `coregs_config.py` file and if you install the programs anywhere else,
 you can simply change those values to their correct locations and COREGS will run properly. 
@@ -15,7 +15,7 @@ Instructions for completing these tasks can be found below.
 
 ### Download GRAPS
 
-If you downloaded graps using the `get_graps_temoa.py` script then you do not need to follow these steps and can skip to the [compilation section below.](#compilng-graps)
+If you downloaded graps using the `coregs_init_setup.py` script then you do not need to follow these steps and can skip to the [compilation section below.](#compiling-graps)
 
 GRAPS can be downloaded from its [GitHub respository](https://github.com/lcford2/GRAPS/tree/v1.0-coregs).
 You can either clone the code and checkout the COREGS release with `git checkout tags/v1.0-coregs` or download the `v1.0-coregs` release directly from https://github.com/lcford2/GRAPS/releases/tag/v1.0-coregs.
@@ -36,7 +36,7 @@ COREGS relies on the shared library and does not use the executable but it is ge
 
 ## Getting Temoa
 
-If you downloaded Temoa with the `get_graps_temoa.py` script, you can skip this section and begin [setting up your python environment](#setup-python-environment).
+If you downloaded Temoa with the `coregs_init_setup.py` script, you can skip this section and begin [setting up your python environment](#setup-python-environment).
 
 Though there were very few changes in the model structure of Temoa to incorporate it into COREGS, there were several changes made to allow it to be called iteratively.
 To ensure the proper version would always be available for COREGS, Temoa was forked and the COREGS branch was created for this project.
@@ -70,6 +70,11 @@ Regardless of which method you choose to setup the virtual environment, it must 
 ## Data
 
 ### Data Retrieval
+
+If you ran the `coregs_init_setup.py` script, the data should have already been downloaded and setup for you.
+There can be issues unpacking the data into the `data` directory, so if the only file in the `data` directory is the `README.md` file
+you should follow this process to get the data because the unpacking failed. 
+Otherwise, you can skip this step.
 
 The original data associated with this model can be found on Zenodo at [https://doi.org/10.5281/zenodo.6315940].
 Before running COREGS, the `coregs-input-data.zip` should be unpacked an extracted to all files should be placed under the `data` directory in the project root.
