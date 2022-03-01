@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 from colorama import Fore, Style
 from pyomo.environ import Constraint, Suffix
-from IPython import embed as II
 
 colorama.init(autoreset=True)
 
@@ -1612,11 +1611,7 @@ class COREGS(object):
         # list for storing costs after each iteration
         # starts with very large number to ensure that the algorithms
         # loop starts
-        try:
-            self.recorded_costs = [float(10 ** 20), self.get_objective_value()]
-        except ValueError as e:
-            II()
-            sys.exit()
+        self.recorded_costs = [float(10 ** 20), self.get_objective_value()]
 
         self.last_cost = self.recorded_costs[1]  # most recent cost
 
