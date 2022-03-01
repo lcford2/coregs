@@ -32,3 +32,7 @@ scens.dat
 
 # files for mpi execution of model
 mpi_files
+
+# pyvenv location
+coregs-env/*
+coregs-env
