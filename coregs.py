@@ -221,11 +221,11 @@ def modify_temoa_capacity(inputFile, scenario):
     con.close()
 
 
-def get_dsd(file="data/distribution.csv"):
+def get_dsd(file="data/demand_specific_distribution.csv"):
     """Retrieves demand specific distribution for a full year
 
     Keyword Arguments:
-        file (str) -- File name/location of the dsd (default: ('data/distribution.csv'))
+        file (str) -- File name/location of the dsd (default: ('data/demand_specific_distribution.csv'))
 
     Returns:
         dict -- Contains dsd indexed by month, day, and hour.
@@ -453,7 +453,7 @@ def get_reservoir_rules(start, stop):
     Returns:
         tuple: two dictionaries containing lower and upper rule curves for reservoirs
     """
-    df = pd.read_pickle("./data/reservoir_rule_curves.pickle")
+    df = pd.read_csv("./data/reservoir_rule_curves.csv", index_col=0)
     names = list({f'{i.split("_")[0]} Reservoir' for i in df.columns})
     lower = {name: [] for name in names}
     upper = {name: [] for name in names}
@@ -702,7 +702,7 @@ def update_max_release(input_path):
     
     pattern = re.compile(r"^\D+$|^\D+\d{1} H$")
 
-    df = pd.read_pickle("./data/max_release.pickle")
+    df = pd.read_csv("./data/max_release.csv", index_col=0, squeeze=True)
 
     with open(user_file, "r") as f:
         user_data = f.readlines()
