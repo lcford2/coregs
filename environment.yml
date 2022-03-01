@@ -1,4 +1,4 @@
-name: coregs-env-3
+name: coregs-env
 channels:
     - defaults
     - conda-forge
@@ -28,3 +28,4 @@ dependencies:
     - pyam
     - colorama
     - future
+    - requests

@@ -6,7 +6,8 @@ To run COREGS, you must have the proper versions of GRAPS and Temoa installed an
 The easiest way to get these models is to use the `coregs_init_setup.py` script (run with `python coregs_init_setup.py`) that will 
 download and put the models in locations COREGS expects them.
 These expected location of GRAPS and Temoa can be found in the `coregs_config.py` file and if you install the programs anywhere else,
-you can simply change those values to their correct locations and COREGS will run properly. 
+you can simply change those values to their correct locations and COREGS will run properly.
+Following the instructions below for downloading and installing GRAPS and Temoa will simply manually complete what the `coregs_init_setup.py` script does.
 
 After downloading the programs, GRAPS will need to be [compiled](#compiling-graps), the [python environment](#setup-python-environment) will need to be setup, and the [data for TVA](#data-retrieval) will need to be downloaded to run COREGS.
 Instructions for completing these tasks can be found below.
@@ -43,29 +44,29 @@ To ensure the proper version would always be available for COREGS, Temoa was for
 
 To download the Temoa version for COREGS, you can clone [my forked Temoa repo](https://github.com/lcford2/temoa) then checkout the coregs tag with `git checkout tags/v1.2.0--coregs` or you can simply download the source code from [https://github.com/lcford2/temoa/releases/tag/v1.2.0-coregs] if you do not want to use `git`. 
 
-To ensure the COREGS can find Temoa, it should be placed on directory up from the root of this project in a folder called `temoa`. 
-To 
+To ensure the COREGS can find Temoa, it should be placed a single directory up from the root of this project in a folder called `temoa`. 
+After installing Temoa, listing the parent directory of this project with `ls ..` should contain a folder named `temoa` and a folder named `coregs`
+for COREGS to run properly.
 
 ## Setup python environment
 
 It is highly recommended to use virtual environments for your python projects.
-Two common approaches to this are using `venv` with `pip` or using `conda`.
+Temoa is built with [Pyomo](http://www.pyomo.org/) and Pyomo recommends using the `conda` package manager for installation.
+Temoa follows this advice and requires specific versions of Pyomo and its extra dependencies therefore we COREGS also follows
+this advice and builds its environment from the base Temoa environment. 
 
-If you are using `venv` and `pip`, ensure you are using Python 3.7 to create the environment.
+### Downloading `conda`
 
-### `venv` environment setup
-
-To create the virtual environment for COREGS, execute the following command in
-- `python3.7 -m venv coregs-env`
-- `source coregs-env/bin/activate`
-- `pip install -r requirements.txt`
+The most common ways to get `conda` are with the [Anaconda](https://docs.conda.io/projects/conda/en/latest/glossary.html#anaconda-glossary) or [Miniconda](https://docs.conda.io/projects/conda/en/latest/glossary.html#miniconda-glossary) distributions.
+Anaconda installs `conda` along with Python, R, and many scientific computing packages and thus takes up a rather large amount of disk space and can take a while to install. 
+Miniconda is a minimal version of Anaconda that only provides `conda`, Python, and the packages needed to make them work properly. 
+We recommend Miniconda, but the choice will not affect how you prepare the environment for COREGS. 
+Regardless of which distribution you choose, you can follow the [installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) to download and install it. 
 
 ### `conda` environment setup
 
-If you are using the `conda` package manager, you can create the python environment for COREGS by executing `conda env create -f environment.yml` in the root directory of this project. 
-To activate this environment so COREGS has access to the necessary packages, run `conda activate coregs`.
-
-Regardless of which method you choose to setup the virtual environment, it must be activated before running the `coregs.py` file.
+The python environment for COREGS can be created by executing `conda env create -f environment.yml` in the root directory of this project. 
+To activate this environment so COREGS has access to the necessary packages, run `conda activate coregs-env`.
 
 ## Data
 
@@ -98,10 +99,10 @@ For more information regarding the Temoa database structure, refer to the [Temoa
 COREGS is ran with the `coregs.py` file.
 Running `python coregs.py --help` will display the usage and command line argument descriptions for COREGS.
 To run COREGS with no other options, execute `python coregs.py <start_year>-<start_month> <nusers> <method>`.
-`<start_year>` should be the four digit year that your scenario begins.
-`<start_month>` should be the two digit (zero padded) month your scenario begins.
-`<nusers>` should be the number of users GRAPS expects to see.
-`<method>` should be the optimization method you want to use. Accepted options are `icorps`, `mhb`, `mhp`, or `single`. 
+  - `<start_year>` should be the four digit year that your scenario begins.
+  - `<start_month>` should be the two digit (zero padded) month your scenario begins.
+  - `<nusers>` should be the number of users GRAPS expects to see.
+  - `<method>` should be the optimization method you want to use. Accepted options are `icorps`, `mhb`, `mhp`, or `single`. 
 For example, to run the Winter 2004 scenario from the original analysis with ICORPS, the command would be `python coregs.py 2004-12 29 icorps`.
 
 ## Model Output
