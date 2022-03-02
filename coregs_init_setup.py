@@ -102,8 +102,8 @@ def get_graps_temoa():
     extract_tarball(temoa_outfile)
 
     print("\nMoving GRAPS and Temoa to proper locations for COREGS")
-    graps_dir = "./graps_2"
-    temoa_dir = "../temoa_2"
+    graps_dir = "./graps"
+    temoa_dir = "../temoa"
 
     graps_ready = prep_dirloc(graps_dir)
     if graps_ready:
@@ -131,7 +131,7 @@ def get_coregs_data():
     extract_zipfile(data_outfile)
 
     print("\nMoving data to proper location")
-    data_dir = "./data_2"
+    data_dir = "./data"
 
     # if the dir does not exist, make it
     if not os.path.exists(data_dir):
