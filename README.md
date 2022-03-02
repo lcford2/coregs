@@ -100,9 +100,10 @@ For more information regarding the Temoa database structure, refer to the [Temoa
 
 Temoa requires the use of a mathematical optimization engine to find solutions.
 COREGS was initially developed using [Gurobi](https://www.gurobi.com/) and thus Gurobi is the default solver for COREGS.
-If you have an email address associated with a univeristy you can retrieve a free Gurobi license from [https://www.gurobi.com/downloads/end-user-license-agreement-academic/](https://www.gurobi.com/downloads/end-user-license-agreement-academic/). 
-After you create an account, you will be able to follow the instructions to download, install, and activate the Gurobi Optimizer.
-If you follow all of the directions and ensure Gurobi is on your PATH, Temoa will find it and automatically use it.
+GUROBI is installed when you create the `coregs-env` conda environment.
+If you have an email address associated with a univeristy you can retrieve a free Gurobi license from [https://www.gurobi.com/downloads/end-user-license-agreement-academic/](https://www.gurobi.com/downloads/end-user-license-agreement-academic/), otherwise to use Gurobi you will have to use a paid license.
+After getting your license, follow the directions from Gurobi on how to activate Gurobi.
+You will need to activate the `coregs-env` environment to activate your license unless you have Gurobi installed else where on your machine.
 
 If you prefer to use [CPLEX](https://www.ibm.com/analytics/cplex-optimizer), you can still get an academic license by following the instructions [here](https://community.ibm.com/community/user/datascience/blogs/xavier-nodet1/2020/07/09/cplex-free-for-students).
 After following the directions to install and activate CPLEX and making sure it is on your PATH, you will need to provide the `--solver cplex` flag when running COREGS so it knows to use CPLEX instead of Gurobi.
