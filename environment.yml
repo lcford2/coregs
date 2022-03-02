@@ -1,6 +1,7 @@
-name: coregs-env-2
+name: coregs-env
 channels:
   - conda-forge
+  - gurobi
   - defaults
 dependencies:
   - _libgcc_mutex=0.1
@@ -55,6 +56,7 @@ dependencies:
   - greenlet=1.1.1
   - gst-plugins-base=1.14.0
   - gstreamer=1.14.0
+  - gurobi=9.5.1
   - harfbuzz=1.8.8
   - iam-units=2021.11.12
   - icu=58.2
