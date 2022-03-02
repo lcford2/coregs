@@ -87,6 +87,7 @@ def parse_args(input_args=None):
         help="Parameter to control step size for ICORPS. Larger numbers equal smaller step size.",
     )
     parser.add_argument("-S", "--stdout", action="store_true", help="Suppress StdOut.")
+    parser.add_argument("--solver", help="Solver to use. Temoa will fail if it cannot find the solver.", default="gurobi")
 
     args = parser.parse_args(input_args) if input_args else parser.parse_args()
     start_year, start_month = args.start.split("-")
@@ -103,6 +104,7 @@ def parse_args(input_args=None):
         "stdout": args.stdout,
         "alpha": args.alpha,
         "one_run": args.one_run,
+        "solver": args.solver
     }
 
 
@@ -1118,10 +1120,10 @@ class COREGS(object):
             self.n_params = int(param_num)
 
         # updating initial data in sqlite database and config file
-        if persistent == "N":
-            solver = "gurobi"
-        elif persistent == "Y":
-            solver = "gurobi_persistent"
+        # if persistent == "N":
+        #     solver = "gurobi"
+        # elif persistent == "Y":
+        #     solver = "gurobi_persistent"
 
         self.scen_name = get_new_scenario_name(
             self.start_year,
@@ -1169,7 +1171,7 @@ class COREGS(object):
         # if not os.path.exists(self.config_file):
         #     shutil.copy("temoa_config", self.input_path)
 
-        modify_temoa_config(self.config_file, self.db_file, self.scen_name, solver)
+        modify_temoa_config(self.config_file, self.db_file, self.scen_name, self.solver)
         self.log_file = open(
             os.path.join(self.output_path, f"{self.scen_name}.log"), "w"
         )
