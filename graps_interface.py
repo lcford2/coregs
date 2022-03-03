@@ -40,7 +40,6 @@ class GRAPS(object):
             "mhp": 2,  # max hydropower
             "msd": 3,  # min spill and deficit
             "mrl": 4,  # max release
-            "icorps": 0
         }
         self.func_flag_str = func_flag
         self.output_dict = {}
@@ -180,7 +179,7 @@ class GRAPS(object):
         self.spill_values = self.ArrayType2(*[0.0 for i in range(self.nparam)])
         self.deficit_values = self.ArrayType2(*[0.0 for i in range(self.nparam)])
         self.res_id_for_spdef = self.ArrayType2_int(*[0 for i in range(self.nparam)])
-        self.func_flag = ct.c_int(self.func_flag_map[self.func_flag_str])
+        self.func_flag = ct.c_int(self.func_flag_map.get(self.func_flag_str, 0))
 
     def _declare_sim_arg_types(self):
         self.ArrayType2 = ct.c_double * int(self.nparam)
