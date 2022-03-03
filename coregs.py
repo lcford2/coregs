@@ -47,20 +47,21 @@ def parse_args(input_args=None):
         "start",
         metavar="start",
         type=str,
-        help="Starting date of modeled period 'YYYY'|'YYYY-MM'",
+        help="Starting date of modeled period 'YYYY-MM'"
     )
     parser.add_argument(
         "n_users",
         metavar="num_users",
         type=int,
-        help="Number of users to pass to GRAPS (# user )",
+        help="Number of users to pass to GRAPS (# user)",
     )
+    methods = ("icorps", "mhb", "mhp", "single")
     parser.add_argument(
         "method",
         metavar="method",
         type=str,
-        help="Which optimization method to be used.",
-        choices=("icorps", "mhb", "mhp", "single")
+        help=f"Which optimization method to be used. One of {methods}.",
+        choices=methods
     )
     parser.add_argument(
         "--rolling",
@@ -70,21 +71,44 @@ def parse_args(input_args=None):
     parser.add_argument(
         "--one_run",
         action="store_true",
-        help="For use with the rolling flag. Only runs the specified scenario but initializes with data"
-             " from the previous scenario (chronologically) if one exists (e.g., the run starting in 2007-07"
-             " would use data from the 2007-06 scenario just as if it was a rolling horizon approach."
+        help="For use with the rolling flag. Only runs the specified scenario but initializes with data\n"
+             "from the previous scenario (chronologically) if one exists (e.g., the run starting in\n"
+             "2007-07 would use data from the 2007-06 scenario just as if it was a rolling horizon approach."
     )
     parser.add_argument(
         "-E",
         "--epsilon",
-        default=0.005,
-        help="Option to provide an epislon (stopping criteria) value to the solver.\nThis value is should be a decimal representing the percent change you are comfortable with.",
+        default=0.001,
+        help="Option to provide an epislon (stopping criteria) value to the solver.\n"
+             "This value is should be a decimal representing the percent change you\n"
+             "are comfortable with.",
     )
     parser.add_argument(
+        "-A",
         "--alpha",
+        dest="alpha",
         type=float,
         default=2,
         help="Parameter to control step size for ICORPS. Larger numbers equal smaller step size.",
+    )
+    parser.add_argument(
+        "-L",
+        "--lambda",
+        dest="lambda_val",
+        type=float,
+        default=0.05,
+        help="Fraction of max release to set as the new release in ICORPS when \n"
+             "the current release is zero but the dual variable is non-zero.\n"
+    )
+    parser.add_argument(
+        "-K",
+        "--converge_num",
+        dest="converge_num",
+        type=int,
+        default=5,
+        help="The number of times the percent change in objective function value from\n"
+             "one iteration to the next must be less than or equal to epsilon before\n"
+             "ICORPS is considered to have converged."
     )
     parser.add_argument("-S", "--stdout", action="store_true", help="Suppress StdOut.")
     parser.add_argument("--solver", help="Solver to use. Temoa will fail if it cannot find the solver.", default="gurobi")
@@ -98,13 +122,15 @@ def parse_args(input_args=None):
         "start_month": start_month,
         "n_init_params": n_init_params,
         "method": args.method,
-        "epsilon": args.epsilon,
         "rolling": args.rolling,
-        "first": False,
-        "stdout": args.stdout,
+        "epsilon": args.epsilon,
         "alpha": args.alpha,
+        "lambda_val": args.lambda_val,
+        "converge_num": args.converge_num,
+        "stdout": args.stdout,
         "one_run": args.one_run,
-        "solver": args.solver
+        "solver": args.solver,
+        "first": False # this is updated when doing rolling runs
     }
 
 
@@ -1431,7 +1457,7 @@ class COREGS(object):
             # do not want to check floats for == 0
             if dec_var < 0 + 0.001:
                 if increase_ratio > 0:
-                    dec_var = 0.05 * self.res_model.release_bounds[res_id][1]
+                    dec_var = self.lambda_val * self.res_model.release_bounds[res_id][1]
             else:
                 dec_var += increase_ratio * dec_var
 
@@ -1630,12 +1656,11 @@ class COREGS(object):
             return (float(old) - float(new)) / float(old) >= eps
 
         # control the convergence criteria with this variable
-        # convergence_num : number of times the model objective
+        # self.converge_num : number of times the model objective
         # change has to be less than epsilon before the model will converged
-        convergence_num = 5
         num_no_change = 0
 
-        while num_no_change < convergence_num:
+        while num_no_change < self.converge_num:
             # change reservoir decision variables
             self.last_cons = set()
             for res_id, value in list(self.res_model.res_constraints.items()):
@@ -1671,7 +1696,8 @@ class COREGS(object):
             )
 
             if not check_change_percent(
-                self.recorded_costs[iteration], self.recorded_costs[iteration - 1]
+                self.recorded_costs[iteration], self.recorded_costs[iteration - 1],
+                eps=self.epsilon
             ):
                 num_no_change += 1
 
