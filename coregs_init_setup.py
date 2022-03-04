@@ -5,8 +5,11 @@ import os
 import shutil
 import glob
 import subprocess
+import argparse
 
-graps_version = "1.0-coregs"
+from coregs_config import graps_loc, temoa_loc
+
+graps_version = "1.0.1-coregs"
 temoa_version = "1.2.0-coregs"
 
 graps_url = f"https://github.com/lcford2/GRAPS/archive/refs/tags/v{graps_version}.tar.gz"
@@ -16,6 +19,42 @@ data_url = "https://zenodo.org/record/6315941/files/coregs-input-data.zip?downlo
 graps_outfile = f"./graps-{graps_version}.tar.gz"
 temoa_outfile = f"./temoa-{temoa_version}.tar.gz"
 data_outfile = "./coregs-input-data.zip"
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Helper script to download and install GRAPS and Temoa"
+                    " and to download the TVA data from Zenodo. If no arguments"
+                    " are provided, GRAPS, Temoa, and the data will all be"
+                    " downloaded. If any flags for a specific component is"
+                    " included, only the components specifically indicated"
+                    " are downloaded."
+    )
+    parser.add_argument(
+        "-G",
+        "--graps",
+        action="store_true",
+        help="Download and install GRAPS in correct location"
+    )
+    parser.add_argument(
+        "-T",
+        "--temoa",
+        action="store_true",
+        help="Download and install Temoa in correct location"
+    )
+    parser.add_argument(
+        "-D",
+        "--data",
+        action="store_true",
+        help="Download and place TVA data in correct location"
+    )
+    args = parser.parse_args()
+
+    if not any([args.graps, args.temoa, args.data]):
+        args.graps = True
+        args.temoa = True
+        args.data  = True
+    return args
+
 
 def download_file(url, outfile):
     file = requests.get(url)
@@ -86,41 +125,38 @@ def move_dir_files(dirloc, output_dir):
                     shutil.move(file, output_file)
             else:
                 shutil.move(file, output_file)
+
+
+def get_model(model, version, url, outfile):
+    print(f"\nDownloading {model.capitalize()} {version} from {url} to {outfile}")
+    download_file(url, outfile)
+
+    print(f"\nExtracting {outfile}")
+    extract_tarball(outfile)
     
+    if model == "GRAPS":
+        outdir = graps_loc
+    elif model == "temoa":
+        outdir = temoa_loc
 
-def get_graps_temoa():
-    print(f"\nDownloading GRAPS {graps_version} from {graps_url} to {graps_outfile}")
-    download_file(graps_url, graps_outfile)
+    print(f"\nMoving {model.capitalize()} to {outdir} for COREGS")
 
-    print(f"Downloading Temoa {temoa_version} from {temoa_url} to {temoa_outfile}")
-    download_file(temoa_url, temoa_outfile)
-
-    print(f"\nExtracting {graps_outfile}")
-    extract_tarball(graps_outfile)
-
-    print(f"Extracting {temoa_outfile}")
-    extract_tarball(temoa_outfile)
-
-    print("\nMoving GRAPS and Temoa to proper locations for COREGS")
-    graps_dir = "./graps"
-    temoa_dir = "../temoa"
-
-    graps_ready = prep_dirloc(graps_dir)
-    if graps_ready:
-        os.rename(f"GRAPS-{graps_version}", graps_dir)
+    loc_ready = prep_dirloc(outdir)
+    if loc_ready:
+        os.rename(f"{model}-{version}", outdir)
     else:
-        print(f"Not moving files from GRAPS-{graps_version} to {graps_dir}")
-        
-
-    temoa_ready = prep_dirloc(temoa_dir)
-    if temoa_ready:
-        os.rename(f"temoa-{temoa_version}", temoa_dir)
-    else:
-        print(f"Not moving files from temoa-{temoa_version} to {temoa_dir}")
+        print(f"Not moving files from {model}-{version} to {outdir}")
 
     print("\nCleaning up")
-    os.remove(graps_outfile)
-    os.remove(temoa_outfile)
+    os.remove(outfile)
+
+
+def get_graps():
+    get_model("GRAPS", graps_version, graps_url, graps_outfile)
+
+
+def get_temoa():
+    get_model("temoa", temoa_version, temoa_url, temoa_outfile)
 
 
 def get_coregs_data():
@@ -148,8 +184,15 @@ def get_coregs_data():
     
 
 def main():
-    get_graps_temoa()
-    get_coregs_data()
+    args = parse_args()
+    if args.graps:
+        get_graps()
+    
+    if args.temoa:
+        get_temoa()
+
+    if args.data:
+        get_coregs_data()
 
 
 if __name__ == "__main__":
