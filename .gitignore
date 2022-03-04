@@ -34,6 +34,8 @@ scens.dat
 # files for mpi execution of model
 mpi_files
 
-# pyvenv location
-coregs-env/*
-coregs-env
+# Files for docker use
+!docker_run_coregs.sh
+!install_cplex.sh
+cplex*.bin
+
