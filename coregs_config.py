@@ -7,5 +7,6 @@
 # you should not need to update these values. 
 # However, if you installed these programs in different locations, you could change
 # these and COREGS will use those locations instead.
+
 graps_loc = "./graps"
-temoa_loc = "../temoa"
+temoa_loc = "./temoa"
