@@ -9,8 +9,9 @@ data/*
 
 !graps_input/default
 
-# graps directory, this should be pulled from a separate repository
+# model directory, this should be pulled from a separate repository
 graps
+temoa
 
 # dev environment 
 .vscode
