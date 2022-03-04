@@ -111,7 +111,7 @@ def parse_args(input_args=None):
              "ICORPS is considered to have converged."
     )
     parser.add_argument("-S", "--stdout", action="store_true", help="Suppress StdOut.")
-    parser.add_argument("--solver", help="Solver to use. Temoa will fail if it cannot find the solver.", default="gurobi")
+    parser.add_argument("--solver", help="Solver to use. Temoa will fail if it cannot find the solver.", default="cplex")
 
     args = parser.parse_args(input_args) if input_args else parser.parse_args()
     start_year, start_month = args.start.split("-")
@@ -404,7 +404,7 @@ def modify_temoa_demand(inputFile, newDemand, nmonths):
         con.close()
         sys.exit()
 
-def modify_temoa_config(file, db_file, scenario, solver="gurobi"):
+def modify_temoa_config(file, db_file, scenario, solver="cplex"):
     """Edits config file specified by 'file' to reflect
     current scenario, input and output files, and solver
 
@@ -414,7 +414,7 @@ def modify_temoa_config(file, db_file, scenario, solver="gurobi"):
         scenario {str} -- scenario name for model run
 
     Keyword Arguments:
-        solver {str} -- solver interface for pyomo to use (default: {'gurobi'})
+        solver {str} -- solver interface for pyomo to use (default: {'cplex'})
     """
     #! Warning, the way temoa runs can be significantly altered by
     #! using this function incorrectly or bugs in the function.
@@ -1344,7 +1344,7 @@ class COREGS(object):
         get_data_from_database(output_file, self.scen_name, self.db_file)
 
         self.create_mass_balance_output()
-        self.clean_tmp_db()
+        # self.clean_tmp_db()
 
     def find_in_out_paths(self):
         cur_dir = os.getcwd()
@@ -1767,7 +1767,7 @@ class COREGS(object):
 
         self.create_mass_balance_output()
         
-        self.clean_tmp_db()
+        # self.clean_tmp_db()
         if self.stdout:
             self.SO.close()
         return iteration
