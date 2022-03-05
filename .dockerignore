@@ -1,0 +1,16 @@
+# ignore contents of input, output, and data directories.
+# these are should be mounted when running docker so output is
+# available on the host
+graps_output/*
+generation_output/*
+objective_output/*
+graps_input/*
+data/*
+
+# ignore any __pycache__
+__pycache__/*
+__pycache__
+
+# all log files
+*.log
+
