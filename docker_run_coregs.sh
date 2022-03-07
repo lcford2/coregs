@@ -1,12 +1,11 @@
 #!/bin/bash
 
-PYTHON=/usr/local/envs/coregs-env/bin/python
+source /usr/local/bin/activate coregs-env
 
+# check args
 if [ $# -eq 0 ]; then
+    # if nothing is provided, provide help
     args="-h"
-    check_cplex=false
-elif [ $# -eq 1 ]; then
-    args=$1
     check_cplex=false
 else
     args=$@
