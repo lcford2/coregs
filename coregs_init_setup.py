@@ -1,58 +1,64 @@
-import requests
-import tarfile
-import zipfile
+import argparse
+import glob
 import os
 import shutil
-import glob
 import subprocess
-import argparse
+import tarfile
+import zipfile
+
+import requests
 
 from coregs_config import graps_loc, temoa_loc
 
 graps_version = "1.0.1-coregs"
 temoa_version = "1.2.0-coregs"
 
-graps_url = f"https://github.com/lcford2/GRAPS/archive/refs/tags/v{graps_version}.tar.gz"
-temoa_url = f"https://github.com/lcford2/temoa/archive/refs/tags/v{temoa_version}.tar.gz"
+graps_url = (
+    f"https://github.com/lcford2/GRAPS/archive/refs/tags/v{graps_version}.tar.gz"
+)
+temoa_url = (
+    f"https://github.com/lcford2/temoa/archive/refs/tags/v{temoa_version}.tar.gz"
+)
 data_url = "https://zenodo.org/record/6315941/files/coregs-input-data.zip?download=1"
 
 graps_outfile = f"./graps-{graps_version}.tar.gz"
 temoa_outfile = f"./temoa-{temoa_version}.tar.gz"
 data_outfile = "./coregs-input-data.zip"
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Helper script to download and install GRAPS and Temoa"
-                    " and to download the TVA data from Zenodo. If no arguments"
-                    " are provided, GRAPS, Temoa, and the data will all be"
-                    " downloaded. If any flags for a specific component is"
-                    " included, only the components specifically indicated"
-                    " are downloaded."
+        " and to download the TVA data from Zenodo. If no arguments"
+        " are provided, GRAPS, Temoa, and the data will all be"
+        " downloaded. If any flags for a specific component is"
+        " included, only the components specifically indicated"
+        " are downloaded."
     )
     parser.add_argument(
         "-G",
         "--graps",
         action="store_true",
-        help="Download and install GRAPS in correct location"
+        help="Download and install GRAPS in correct location",
     )
     parser.add_argument(
         "-T",
         "--temoa",
         action="store_true",
-        help="Download and install Temoa in correct location"
+        help="Download and install Temoa in correct location",
     )
     parser.add_argument(
         "-D",
         "--data",
         action="store_true",
-        help="Download and place TVA data in correct location"
+        help="Download and place TVA data in correct location",
     )
     args = parser.parse_args()
 
     if not any([args.graps, args.temoa, args.data]):
         args.graps = True
         args.temoa = True
-        args.data  = True
+        args.data = True
     return args
 
 
@@ -73,12 +79,8 @@ def extract_zipfile(zipfile_loc, output="."):
             f.extractall(output)
     except NotImplementedError:
         print(f"Extracting {zipfile_loc} failed. Trying `unzip` command line utility.")
-        subprocess.call([
-            "unzip",
-            zipfile_loc,
-            "-d", 
-            output
-        ])
+        subprocess.call(["unzip", zipfile_loc, "-d", output])
+
 
 def check_dir_exist(dirloc):
     return os.path.isdir(dirloc)
@@ -89,9 +91,7 @@ def check_dir_empty(dirloc):
 
 
 def ask_overwrite_dir(dirloc):
-    resp = input(
-        f"{dirloc} is not empty. Do you wish to overwrite it? [y/N] "
-    )
+    resp = input(f"{dirloc} is not empty. Do you wish to overwrite it? [y/N] ")
     return resp.lower()
 
 
@@ -114,6 +114,7 @@ def prep_dirloc(dirloc):
         # dirloc exists and is empty so all is good
         return True
 
+
 def move_dir_files(dirloc, output_dir):
     for file in glob.glob(f"{dirloc}/*"):
         if os.path.isfile(file):
@@ -133,7 +134,7 @@ def get_model(model, version, url, outfile):
 
     print(f"\nExtracting {outfile}")
     extract_tarball(outfile)
-    
+
     if model == "GRAPS":
         outdir = graps_loc
     elif model == "temoa":
@@ -174,20 +175,22 @@ def get_coregs_data():
         os.mkdir(data_dir)
     # if is exists but is not a directory, fail
     elif not os.path.isdir(data_dir):
-        raise NotADirectoryError(F"ERROR: Cannot move data to {data_dir} because it is a file.")
-    
+        raise NotADirectoryError(
+            f"ERROR: Cannot move data to {data_dir} because it is a file."
+        )
+
     move_dir_files("./coregs-input-data", data_dir)
-        
+
     print("\nCleaning up")
     os.remove(data_outfile)
     shutil.rmtree("./coregs-input-data")
-    
+
 
 def main():
     args = parse_args()
     if args.graps:
         get_graps()
-    
+
     if args.temoa:
         get_temoa()
 

@@ -1,6 +1,6 @@
-import subprocess
-import shutil
 import os
+import shutil
+import subprocess
 import sys
 
 
@@ -17,11 +17,11 @@ def get_cwd():
 
 def make_mount_calls(cwd):
     mount_dirs = [
-        "graps_input", 
+        "graps_input",
         "graps_output",
         "objective_output",
         "generation_output",
-        "data"
+        "data",
     ]
     calls = []
     for mdir in mount_dirs:
@@ -38,7 +38,7 @@ def run_coregs_interactive(args, mount_calls):
         "--rm",
         *mount_calls,
         "lcford/coregs:1.0.0",
-        "/bin/bash"
+        "/bin/bash",
     ]
     print(" ".join(call))
     return subprocess.call(call)
@@ -51,7 +51,7 @@ def run_coregs(args, mount_calls):
         *mount_calls,
         "lcford/coregs:1.0.0",
         "./docker_run_coregs.sh",
-        *args
+        *args,
     ]
     return subprocess.call(call)
 

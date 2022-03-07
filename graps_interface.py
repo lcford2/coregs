@@ -16,7 +16,12 @@ class GRAPS(object):
     """
 
     def __init__(
-        self, n_init_params, graps_loc, input_path="./", output_path="./", func_flag="mhb"
+        self,
+        n_init_params,
+        graps_loc,
+        input_path="./",
+        output_path="./",
+        func_flag="mhb",
     ):
         self.n_init_params = n_init_params
         self.in_path = input_path
