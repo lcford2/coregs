@@ -2,137 +2,57 @@
 
 [![DOI](https://zenodo.org/badge/455716754.svg)](https://zenodo.org/badge/latestdoi/455716754)
 
-## COREGS Setup
+## Overview
 
-To run COREGS, you must have the proper versions of GRAPS and Temoa installed and in locations where COREGS can find them.
-The easiest way to get these models is to use the `coregs_init_setup.py` script (run with `python coregs_init_setup.py`) that will 
-download and put the models in locations COREGS expects them.
-These expected location of GRAPS and Temoa can be found in the `coregs_config.py` file and if you install the programs anywhere else,
-you can simply change those values to their correct locations and COREGS will run properly.
-Following the instructions below for downloading and installing GRAPS and Temoa will simply manually complete what the `coregs_init_setup.py` script does.
+This version of COREGS is setup for use within a Docker environment. 
+A few key differences between this version and the main version are:
+  - Temoa is installed in the current directory instead of a directory higher
+  - The default solver is GLPK
+    - Should a CPLEX installation file be placed in the current directory when the container is built, the default solver will then become CPLEX.
+      - This is the advised strategy as the problems COREGS is suited for can grow quite large and GLPK may not provide a solution in a reasonable amount of time.
+    - Due to the version of Pyomo required by Temoa, *CPLEX version 12.8 is the highest that can be supported by COREGS.*
+    - The divergence from Gurobi here is due to the inability to use Gurobi academic licenses within containers.
+  - Several new files have been added to assist with running COREGS within the container
+    - `Dockerfile`: this file is used to build the container
+    - `install_cplex.sh`: this file is executed when building the container if a CPLEX installer file is found in the build directory 
+    - `docker_run_coregs.sh`: this file is executed within the container to run COREGS
+    - `docker_coregs.py`: this file should be executed from the host machine to run COREGS in the container. The proper data directories are mounted within the container to facilitate input and output from COREGS. You should pass arguments to this script the same way you would to COREGS and you can run this with the `--help` flag to find the usage. 
+    - `cplex.properties`: this file provides CPLEX installers with the information needed to install CPLEX properly
+  - Additionally, the conda environment has been made more specific for the target container
+  - GRAPS is compiled with `gfortran` rather than `ifort` (Intel's Fortran compiler). This is done to reduce the size of the container.
 
-After downloading the programs, GRAPS will need to be [compiled](#compiling-graps), the [python environment](#setup-python-environment) will need to be setup, and the [data for TVA](#data-retrieval) will need to be downloaded to run COREGS.
-Instructions for completing these tasks can be found below.
+To setup and use COREGS, first download and install GRAPS, Temoa, and the data for TVA using `python coregs_init_setup.py` then follow the instructions in either [Docker with CPLEX](#docker-with-cplex) or [Docker without CPLEX](#docker-without-cplex). 
+The Docker setup instructions assume you have Docker installed properly on your machine.
+If you do not, you can follow the instruction at [https://docs.docker.com/get-docker/](https://docs.docker.com/get-docker/) to get it. 
+After setting up the docker container, you can run `python docker_coregs.py --help` to print out the usage COREGS expects. 
+The `docker_coregs.py` script accepts arguments in the same manner as the `coregs.py` script and will simply pass them along.
+You can find basic usage information in the [Running COREGS](#running-coregs) section.
 
-## Getting and Compiling GRAPS
+## Docker with CPLEX
 
-### Download GRAPS
+To use the COREGS container with CPLEX you must:
+  1. Register for a CPLEX license (IBM offers free academic licenses for students and educators)
+  1. Download a CPLEX studio version less than 12.9 for x86-64 Linux architecture
+    - Regardless of the host machine, the CPLEX version should be for x86-64 Linux as this is the container it will run in
+  1. Move the `cplex_studioVVV.linux-x86-64.bin` file to the root directory of this project
+  1. Build the container by executing `docker build -t coregs:1.0.0 .` from the root directory of this project
 
-If you downloaded graps using the `coregs_init_setup.py` script then you do not need to follow these steps and can skip to the [compilation section below.](#compiling-graps)
+## Docker without CPLEX
 
-GRAPS can be downloaded from its [GitHub respository](https://github.com/lcford2/GRAPS/tree/v1.0-coregs).
-You can either clone the code and checkout the COREGS release with `git checkout tags/v1.0-coregs` or download the `v1.0-coregs` release directly from https://github.com/lcford2/GRAPS/releases/tag/v1.0-coregs.
-After you have downloaded GRAPS, move it to a directory named `graps` in the root directory of this project or modify the `graps_loc` variable in `coregs_config.py` to point to where GRAPS is installed.
-
-### Compiling GRAPS
-
-To compile GRAPS, you will need the intel oneAPI HPC toolkit, which is dependent on the oneAPI base toolkit. 
-You can find information on installing these toolkits at the [Intel oneAPI webpage](https://www.intel.com/content/www/us/en/developer/tools/oneapi/toolkits.html#gs.pvef6v). 
-You will also need the [GNU Make Utility](https://www.gnu.org/software/make/).
-This will allow you to easily compile GRAPS on a Linux machine. 
-If you are running Mac or Windows, it will be easiest to use the docker image to run this code [ADD DOCKER IMAGE].
-If you would rather compile from source on Mac or Windows, you can follow the directions to get the oneAPI kits and then use the makefile at `graps/src/makefile` as a guide for compilation. 
-
-After you have installed the toolkits and sourced the setup script (e.g., `source /opt/intel/oneapi/setvars.sh` if you installed the toolkits under the `/opt` directory), you can compile GRAPS by changing to the `graps` directory and running `make` from the command line. 
-This will compile a shared library and store it at `graps/lib/graps.so` and an executable and store it at `graps/bin/graps`. 
-COREGS relies on the shared library and does not use the executable but it is generated for your convenience.
-
-## Getting Temoa
-
-If you downloaded Temoa with the `coregs_init_setup.py` script, you can skip this section and begin [setting up your python environment](#setup-python-environment).
-
-Though there were very few changes in the model structure of Temoa to incorporate it into COREGS, there were several changes made to allow it to be called iteratively.
-To ensure the proper version would always be available for COREGS, Temoa was forked and the COREGS branch was created for this project.
-
-To download the Temoa version for COREGS, you can clone [my forked Temoa repo](https://github.com/lcford2/temoa) then checkout the coregs tag with `git checkout tags/v1.2.0--coregs` or you can simply download the source code from [https://github.com/lcford2/temoa/releases/tag/v1.2.0-coregs] if you do not want to use `git`. 
-
-To ensure the COREGS can find Temoa, it should be placed a single directory up from the root of this project in a folder called `temoa`. 
-After installing Temoa, listing the parent directory of this project with `ls ..` should contain a folder named `temoa` and a folder named `coregs`
-for COREGS to run properly.
-
-## Setup python environment
-
-It is highly recommended to use virtual environments for your python projects.
-Temoa is built with [Pyomo](http://www.pyomo.org/) and Pyomo recommends using the `conda` package manager for installation.
-Temoa follows this advice and requires specific versions of Pyomo and its extra dependencies therefore we COREGS also follows
-this advice and builds its environment from the base Temoa environment. 
-
-### Downloading `conda`
-
-The most common ways to get `conda` are with the [Anaconda](https://docs.conda.io/projects/conda/en/latest/glossary.html#anaconda-glossary) or [Miniconda](https://docs.conda.io/projects/conda/en/latest/glossary.html#miniconda-glossary) distributions.
-Anaconda installs `conda` along with Python, R, and many scientific computing packages and thus takes up a rather large amount of disk space and can take a while to install. 
-Miniconda is a minimal version of Anaconda that only provides `conda`, Python, and the packages needed to make them work properly. 
-We recommend Miniconda, but the choice will not affect how you prepare the environment for COREGS. 
-Regardless of which distribution you choose, you can follow the [installation instructions](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) to download and install it. 
-
-### `conda` environment setup
-
-The python environment for COREGS can be created by executing `conda env create -f environment.yml` in the root directory of this project. 
-To activate this environment so COREGS has access to the necessary packages, run `conda activate coregs-env`.
-
-## Data
-
-### Data Retrieval
-
-If you ran the `coregs_init_setup.py` script, the data should have already been downloaded and setup for you.
-There can be issues unpacking the data into the `data` directory, so if the only file in the `data` directory is the `README.md` file
-you should follow this process to get the data because the unpacking failed. 
-Otherwise, you can skip this step.
-
-The original data associated with this model can be found on Zenodo at [https://doi.org/10.5281/zenodo.6315940].
-Before running COREGS, the `coregs-input-data.zip` should be unpacked an extracted to all files should be placed under the `data` directory in the project root.
-If unzipping creates a folder in the `data` directory called `coregs-input-data`, all of the files in that folder should be moved so they reside directly in the
-`data` directory.
-
-### GRAPS
-
-GRAPS will populate scenarios based on files in the `graps_input/default` directory and will modify their data using files in the `data` directory. 
-The default files were created by the [GRAPS interface](https://github.com/lcford2/graps_gui).
-
-### Temoa
-
-Temoa relies on the SQLite database at `data/tva_temoa.sqlite`. 
-The `.sql` file that created that database is also included at `data/tva_temoa.sql`.
-This file can be used to create a database for your own system.
-For more information regarding the Temoa database structure, refer to the [Temoa Project Documentation](https://temoacloud.com/temoaproject/Documentation.html#database-construction).
-
-## Solver for Temoa
-
-Temoa requires the use of a mathematical optimization engine to find solutions.
-COREGS was initially developed using [Gurobi](https://www.gurobi.com/) and thus Gurobi is the default solver for COREGS.
-To install Gurobi, download and unpack the proper version for your computer from [https://www.gurobi.com/downloads/gurobi-software/](https://www.gurobi.com/downloads/gurobi-software/).
-You can do this in your home directory (e.g., `/home/username/gurobi###` where the `###` are replaced with the version numbers(e.g., 951)). 
-
-After installing, you will need update some environment variables so Temoa knows where gurobi exists.
-If on Linux, you can add something similar to the lines below to your .bashrc file then source that file.
-
-```bash
-export GUROBI_HOME="/home/username/gurobi###/linux64"
-export PATH="${PATH}:${GUROBI_HOME}/bin"
-export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${GUROBI_HOME}/lib"
-```
-
-If you have an email address associated with a univeristy you can retrieve a free Gurobi license from [https://www.gurobi.com/downloads/end-user-license-agreement-academic/](https://www.gurobi.com/downloads/end-user-license-agreement-academic/), otherwise to use Gurobi you will have to use a paid license.
-After getting your license, follow the directions from Gurobi on how to activate Gurobi.
-
-If you prefer to use [CPLEX](https://www.ibm.com/analytics/cplex-optimizer), you can still get an academic license by following the instructions [here](https://community.ibm.com/community/user/datascience/blogs/xavier-nodet1/2020/07/09/cplex-free-for-students).
-After following the directions to install and activate CPLEX and making sure it is on your PATH, you will need to provide the `--solver cplex` flag when running COREGS so it knows to use CPLEX instead of Gurobi.
-
-COREGS and Temoa can also work with other solvers such as [GLPK](https://www.gnu.org/software/glpk/).
-GLPK is installed when the `coregs-env` is created, and can be used by providing the `--solver glpk` flag when running COREGS.
-However, if attempting to solve any of the TVA scenarios associated with the original research article, it is highly recommended to use Gurobi or CPLEX due to their speed.
-Smaller problems may be able to use GLPK but it will become impractical to run COREGS with GLPK for larger problems.
+If you do not plan to use CPLEX, you can still build the container by executing the command in [Step 4](#docker-with-cplex).
+Alternatively, you can pull the prebuilt image from Docker Hub by executing `docker pull lcford/coregs:1.0.0`.
+This image is built without CPLEX and thus will use GLPK to solve Temoa.
 
 ## Running COREGS
 
-COREGS is ran with the `coregs.py` file.
-Running `python coregs.py --help` will display the usage and command line argument descriptions for COREGS.
-To run COREGS with no other options, execute `python coregs.py <start_year>-<start_month> <nusers> <method>`.
+To run COREGS in the Docker container, use the `docker_coregs.py` script.
+Running `python docker_coregs.py --help` will display the usage and command line argument descriptions for COREGS.
+To run COREGS with no other options, execute `python docker_coregs.py <start_year>-<start_month> <nusers> <method>`.
   - `<start_year>` should be the four digit year that your scenario begins.
   - `<start_month>` should be the two digit (zero padded) month your scenario begins.
   - `<nusers>` should be the number of users GRAPS expects to see.
   - `<method>` should be the optimization method you want to use. Accepted options are `icorps`, `mhb`, `mhp`, or `single`. 
-For example, to run the Winter 2004 scenario from the original analysis with ICORPS, the command would be `python coregs.py 2004-12 29 icorps`.
+For example, to run the Winter 2004 scenario from the original analysis with ICORPS, the command would be `python docker_coregs.py 2004-12 29 icorps`.
 
 ## Model Output
 
