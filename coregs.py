@@ -111,7 +111,7 @@ def parse_args(input_args=None):
              "ICORPS is considered to have converged."
     )
     parser.add_argument("-S", "--stdout", action="store_true", help="Suppress StdOut.")
-    parser.add_argument("--solver", help="Solver to use. Temoa will fail if it cannot find the solver.", default="cplex")
+    parser.add_argument("--solver", help="Solver to use. Temoa will fail if it cannot find the solver.", default="glpk")
 
     args = parser.parse_args(input_args) if input_args else parser.parse_args()
     start_year, start_month = args.start.split("-")
@@ -404,7 +404,7 @@ def modify_temoa_demand(inputFile, newDemand, nmonths):
         con.close()
         sys.exit()
 
-def modify_temoa_config(file, db_file, scenario, solver="cplex"):
+def modify_temoa_config(file, db_file, scenario, solver="glpk"):
     """Edits config file specified by 'file' to reflect
     current scenario, input and output files, and solver
 
@@ -414,7 +414,7 @@ def modify_temoa_config(file, db_file, scenario, solver="cplex"):
         scenario {str} -- scenario name for model run
 
     Keyword Arguments:
-        solver {str} -- solver interface for pyomo to use (default: {'cplex'})
+        solver {str} -- solver interface for pyomo to use (default: {'glpk'})
     """
     #! Warning, the way temoa runs can be significantly altered by
     #! using this function incorrectly or bugs in the function.
