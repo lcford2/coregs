@@ -35,17 +35,20 @@ To use the COREGS container with CPLEX you must:
   1. Download a CPLEX studio version less than 12.9 for x86-64 Linux architecture
     - Regardless of the host machine, the CPLEX version should be for x86-64 Linux as this is the container it will run in
   1. Move the `cplex_studioVVV.linux-x86-64.bin` file to the root directory of this project
-  1. Build the container by executing `docker build -t coregs:1.0.0 .` from the root directory of this project
+  1. Build the container by executing `docker build -t coregs:1.0.1 .` from the root directory of this project
 
 ## Docker without CPLEX
 
 If you do not plan to use CPLEX, you can still build the container by executing the command in [Step 4](#docker-with-cplex).
-Alternatively, you can pull the prebuilt image from Docker Hub by executing `docker pull lcford/coregs:1.0.0`.
+Alternatively, you can pull the prebuilt image from Docker Hub by executing `docker pull lcford/coregs:1.0.1`.
 This image is built without CPLEX and thus will use GLPK to solve Temoa.
 
 ## Running COREGS
 
 To run COREGS in the Docker container, use the `docker_coregs.py` script.
+
+NOTE: If you pulled the prebuilt container `lcford/coregs:1.0.1`, then you are good to go. If you built your own instead, you will need to change line 6 in `docker_coregs.py` to the name of your container (e.g. `coregs:1.0.1` if you followed the instruction in step 4 of [Docker with CPLEX](#docker-with-cplex) exactly). 
+
 Running `python docker_coregs.py --help` will display the usage and command line argument descriptions for COREGS.
 To run COREGS with no other options, execute `python docker_coregs.py <start_year>-<start_month> <nusers> <method>`.
   - `<start_year>` should be the four digit year that your scenario begins.
