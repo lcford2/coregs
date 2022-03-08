@@ -38,7 +38,7 @@ def run_coregs_interactive(args, mount_calls):
         "-it",
         "--rm",
         *mount_calls,
-        "lcford/coregs:1.0.0",
+        CONTAINER,
         "/bin/bash",
     ]
     print(" ".join(call))
@@ -49,11 +49,13 @@ def run_coregs(args, mount_calls):
     call = [
         "docker",
         "run",
+        "--rm",
         *mount_calls,
-        "lcford/coregs:1.0.0",
+        CONTAINER,
         "./docker_run_coregs.sh",
         *args,
     ]
+    print(" ".join(call))
     return subprocess.call(call)
 
 
