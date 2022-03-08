@@ -17,10 +17,7 @@ RUN make
 
 # create conda environment
 WORKDIR /code/coregs
-RUN conda env create -f environment.yml && \
-    conda init bash && \
-    source ~/.bashrc && \
-    conda activate coregs-env
+RUN conda env create -f environment.yml
 
 # default run command
 CMD ["./docker_run_coregs.sh"]
