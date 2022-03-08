@@ -1,13 +1,14 @@
 import os
-import shutil
 import subprocess
 import sys
+
+CONTAINER = "lcford/coregs:1.0.1"
 
 
 def get_args():
     try:
         return sys.argv[1:]
-    except IndexError as e:
+    except IndexError:
         return []
 
 
