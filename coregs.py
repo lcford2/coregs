@@ -115,7 +115,7 @@ def parse_args(input_args=None):
     parser.add_argument(
         "--solver",
         help="Solver to use. Temoa will fail if it cannot find the solver.",
-        default="glpk",
+        default="cbc",
     )
 
     args = parser.parse_args(input_args) if input_args else parser.parse_args()
@@ -411,7 +411,7 @@ def modify_temoa_demand(inputFile, newDemand, nmonths):
         sys.exit()
 
 
-def modify_temoa_config(file, db_file, scenario, solver="glpk"):
+def modify_temoa_config(file, db_file, scenario, solver="cbc"):
     """Edits config file specified by 'file' to reflect
     current scenario, input and output files, and solver
 
@@ -421,7 +421,7 @@ def modify_temoa_config(file, db_file, scenario, solver="glpk"):
         scenario {str} -- scenario name for model run
 
     Keyword Arguments:
-        solver {str} -- solver interface for pyomo to use (default: {'glpk'})
+        solver {str} -- solver interface for pyomo to use (default: {'cbc'})
     """
     #! Warning, the way temoa runs can be significantly altered by
     #! using this function incorrectly or bugs in the function.
