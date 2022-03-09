@@ -7,9 +7,10 @@
 This version of COREGS is setup for use within a Docker environment. 
 A few key differences between this version and the main version are:
   - Temoa is installed in the current directory instead of a directory higher
-  - The default solver is GLPK
+  - The default solver is CBC (CLP)
     - Should a CPLEX installation file be placed in the current directory when the container is built, the default solver will then become CPLEX.
-      - This is the advised strategy as the problems COREGS is suited for can grow quite large and GLPK may not provide a solution in a reasonable amount of time.
+      - CPLEX will provide solutions faster than CBC (CLP) or GLPK, however you must register for a license and build the container yourself to leverage that speed.
+      - In practice, CBC (CLP) performs well enough for most problems and CPLEX is not required, however if you find that solution times are too long, it is worth experimenting with CPLEX.
     - Due to the version of Pyomo required by Temoa, *CPLEX version 12.8 is the highest that can be supported by COREGS.*
     - The divergence from Gurobi here is due to the inability to use Gurobi academic licenses within containers.
   - Several new files have been added to assist with running COREGS within the container
@@ -41,7 +42,10 @@ To use the COREGS container with CPLEX you must:
 
 If you do not plan to use CPLEX, you can still build the container by executing the command in [Step 4](#docker-with-cplex).
 Alternatively, you can pull the prebuilt image from Docker Hub by executing `docker pull lcford/coregs:1.0.1`.
-This image is built without CPLEX and thus will use GLPK to solve Temoa.
+This image is built without CPLEX and thus the default solver is CBC. 
+CBC is the Coin-or Branch and Cut solver but uses the CLP (Coin-or Linear Programming) solver to solve LP problems.
+Pyomo does not provide an interface for CLP, but does for CBC, and invoking CBC with a pure LP model (such as Temoa) will simply call CLP.
+GLPK is also provided as a potential solver, however it does not perform nearly as well as CBC (CLP) and is too slow to use with larger problems.
 
 ## Running COREGS
 
